@@ -1,0 +1,30 @@
+# XcodeGen이 생성하는 프로젝트 파일 (project.yml에서 재생성됨)
+*.xcodeproj
+
+# Xcode 빌드 산물
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager
+.build/
+Packages/
+.swiftpm/
+
+# macOS
+.DS_Store
+
+# 개인 도구 설정 (gstack, Claude Code 세션)
+.claude/
+.gstack/
+
+# 배포 산물
+*.app
+*.dmg
+*.zip
+
+# 임시 / 백업
+*.swp
+*.tmp
+*~

@@ -1,0 +1,34 @@
+name: CursorHighlight
+options:
+  bundleIdPrefix: com.ktoy
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+  xcodeVersion: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  CursorHighlight:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/CursorHighlight
+    info:
+      path: Sources/CursorHighlight/Info.plist
+      properties:
+        LSUIElement: true
+        NSAccessibilityUsageDescription: "마우스 클릭과 키보드 입력을 감지해 커서 강조 효과를 표시합니다."
+        NSScreenCaptureUsageDescription: "돋보기 기능으로 커서 주변 화면을 실시간 확대 표시합니다."
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ktoy.CursorHighlight
+        CODE_SIGN_ENTITLEMENTS: Sources/CursorHighlight/CursorHighlight.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        INFOPLIST_FILE: Sources/CursorHighlight/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
