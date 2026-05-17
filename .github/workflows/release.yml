@@ -110,7 +110,9 @@ jobs:
 
           # 기존 release 강제 삭제 (asset 누락 회피). --cleanup-tag 없이 tag는 유지.
           gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" "$ZIP" --title "$TAG" --notes "$NOTES"
+          # --latest 명시 — GitHub의 /releases/latest API가 정확히 이 release를 반환하게 함.
+          # (delete+create 반복 후 latest 메타데이터 cache inconsistent해지는 회귀 방지)
+          gh release create "$TAG" "$ZIP" --title "$TAG" --notes "$NOTES" --latest
 
       - name: Checkout tap repo
         uses: actions/checkout@v4
