@@ -13,32 +13,16 @@
 - **여전히 필요한 케이스**: Mac App Store 등록, Sparkle 자동 업데이트, GitHub Releases 직접 다운로드 사용자 경험 개선.
 - **비용**: Apple Developer Program $99/년 + GitHub Actions notarization 자동화.
 
-### #13 "업데이트 확인" 버튼 실제 동작
-- **위치**: `PreferencesView.swift` `InfoTab` (`Section("업데이트")`)
-- **문제**: 버튼을 누르면 무조건 "최신 버전입니다"만 출력. 실제 체크 없음.
-- **방향 (택1)**:
-  - **A.** [Sparkle](https://sparkle-project.org/) 통합 — 자동 업데이트
-  - **B.** GitHub Releases API 폴링 — 최신 태그와 `CFBundleShortVersionString` 비교
-  - **C.** 버튼 일시 숨김 (정직)
-
 ---
 
-## 기능 아이디어 — 드래그 시각 효과 옵션
+## 향후 아이디어 (지금은 필요 X, 사용자 기반 늘면 검토)
 
-현재 드래그 시 ring이 jelly 스트레치(가로 1.35×, 세로 0.78× + rotation). 추가 옵션 brainstorm.
-공통: `RingMotion` struct에 새 property + `OverlayContentView`에서 분기. `CursorSettings`에
-`@Persisted` 토글 추가. 인프라 이미 잘 잡혀 있어 새 옵션 추가는 한 항목당 ~20-40줄.
-
-## 기타
-
-### git author 글로벌 설정
-- **현재 상태**: `ktoy <ktoy@ktoyui-Macmini.local>` / `ktoy@ktoyui-MacBookPro.local`로 자동 잡힘 → GitHub contribution 그래프에 안 잡힐 수 있음.
-- **방향**:
-  ```bash
-  git config --global user.name "kykim79"
-  git config --global user.email "kykim79@gmail.com"
-  ```
-- **참고**: 이전 두 커밋의 author 재작성은 `git filter-branch` 또는 `rebase` 필요한데 이미 push된 상태라 위험. 앞으로의 커밋만 정리하는 게 안전.
+- **Sparkle 자동 업데이트** — Homebrew 안 쓰는 사용자에게 in-app 자동 업데이트. 코드 사이닝 + appcast.xml 필요.
+- **Notarization** — Apple Developer Program $99/년. Mac App Store 또는 일반 사용자 더블클릭 설치 마찰 제거.
+- **추가 마우스 효과** — middle click, scroll 진폭, 우클릭 컨텍스트 메뉴 시각화.
+- **앱별 자동 모드** — Keynote 발표 중 자동 활성화 등.
+- **PAT 만료 알림** — release workflow에 만료 30일 전 알림 step 추가.
+- **SSH Deploy Key로 PAT 대체** — PAT 만료 신경 안 써도 됨 (한 번 setup 후 영원).
 
 ---
 
