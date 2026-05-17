@@ -1,13 +1,34 @@
 import AppKit
 import ApplicationServices
 import ScreenCaptureKit
+import IOKit.hid
 
 // MARK: - PermissionsManager
 //
-// 손쉬운 사용 / 화면 녹화 권한 요청·polling·설정 패널 오픈.
+// 손쉬운 사용 / 화면 녹화 / 입력 모니터링 / 입력 보내기 권한 요청·polling·설정 패널 오픈.
 // 화면 녹화 권한 상태는 runtime.hasScreenRecordingPermission으로 publish.
 @MainActor
 final class PermissionsManager {
+    // MARK: - 권한 타입 — launch 시 사용자에게 missing 안내할 때 사용
+    enum PermissionType: String, CaseIterable {
+        case accessibility = "손쉬운 사용"
+        case screenRecording = "화면 녹화"
+        case listenEvent = "입력 모니터링"
+        case postEvent = "입력 보내기"
+
+        /// 시스템 설정 → 개인정보 보호 각 항목 URL
+        var settingsURL: URL {
+            let key: String
+            switch self {
+            case .accessibility:    key = "Privacy_Accessibility"
+            case .screenRecording:  key = "Privacy_ScreenCapture"
+            case .listenEvent:      key = "Privacy_ListenEvent"
+            case .postEvent:        key = "Privacy_ListenEvent"  // PostEvent도 같은 입력 모니터링 패널
+            }
+            return URL(string: "x-apple.systempreferences:com.apple.preference.security?\(key)")!
+        }
+    }
+
     private weak var runtime: CursorRuntimeState?
     private var permissionCheckTimer: Timer?
 
@@ -80,13 +101,33 @@ final class PermissionsManager {
         }
     }
 
+    // MARK: - 입력 모니터링 / 입력 보내기 — IOHIDCheckAccess (prompt 없는 상태 조회)
+
+    static func hasListenEventPermission() -> Bool {
+        IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
+    }
+    static func hasPostEventPermission() -> Bool {
+        IOHIDCheckAccess(kIOHIDRequestTypePostEvent) == kIOHIDAccessTypeGranted
+    }
+
+    /// 4개 권한 중 현재 부여되지 않은 것 — launch 시 사용자에게 alert.
+    /// 모두 부여 시 빈 배열.
+    static func missingPermissions() -> [PermissionType] {
+        var missing: [PermissionType] = []
+        if !isAccessibilityTrusted { missing.append(.accessibility) }
+        if !hasScreenRecordingPermission() { missing.append(.screenRecording) }
+        if !hasListenEventPermission() { missing.append(.listenEvent) }
+        if !hasPostEventPermission() { missing.append(.postEvent) }
+        return missing
+    }
+
     // MARK: - 설정 패널 열기
 
     func openInputMonitoringSettings() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent")!)
+        NSWorkspace.shared.open(PermissionType.listenEvent.settingsURL)
     }
 
     func openAccessibilitySettings() {
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+        NSWorkspace.shared.open(PermissionType.accessibility.settingsURL)
     }
 }

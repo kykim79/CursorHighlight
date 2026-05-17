@@ -54,16 +54,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupServices()
         startEventMonitoring()
 
-        if !PermissionsManager.isAccessibilityTrusted {
-            permissionsManager?.requestAccessibility()
-        }
-
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        // UI 안정화 후 권한 4개 체크 — 일부라도 missing 시 alert.
+        // brew upgrade 같은 cdhash 변경으로 권한이 reset된 경우 사용자에게 즉시 안내.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.checkPermissionsAndAlertIfMissing()
+        }
+    }
+
+    /// launch 시 권한 4개 (손쉬운 사용 / 화면 녹화 / 입력 모니터링 / 입력 보내기) 체크.
+    /// 일부 missing 시 NSAlert로 안내 + "시스템 설정 열기" 버튼으로 첫 missing 패널 직접 오픈.
+    /// 모두 부여 시 alert 안 뜸.
+    private func checkPermissionsAndAlertIfMissing() {
+        let missing = PermissionsManager.missingPermissions()
+        guard !missing.isEmpty else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "권한 일부 재부여 필요"
+        alert.informativeText = """
+        CursorHighlight의 다음 권한이 부여되지 않았습니다:
+
+        \(missing.map { "• \($0.rawValue)" }.joined(separator: "\n"))
+
+        앱 업데이트나 macOS 업데이트 시 권한이 reset될 수 있습니다. 시스템 설정에서 각 항목 토글을 다시 켜주세요.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "시스템 설정 열기")
+        alert.addButton(withTitle: "나중에")
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn, let first = missing.first {
+            NSWorkspace.shared.open(first.settingsURL)
+        }
     }
 
     private func setupServices() {
