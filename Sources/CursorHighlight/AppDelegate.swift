@@ -87,25 +87,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let missingOrdered = PermissionsManager.PermissionType.allCases.filter { alwaysMissing.contains($0) }
 
         let alert = NSAlert()
-        alert.messageText = "권한 일부 재부여 필요"
-        alert.informativeText = """
-        CursorHighlight의 다음 권한이 부여되지 않았습니다:
-
-        \(missingOrdered.map { "• \($0.rawValue)" }.joined(separator: "\n"))
-
-        ① 「시스템 설정 열기」 클릭
-        ② 목록에서 CursorHighlight 항목 클릭 후 하단 「-」 버튼으로 제거
-            (이미 토글 ON 상태인데 동작 안 하면 cdhash 변경으로 stuck. 제거 후 재부여만 동작.)
-        ③ CursorHighlight 다시 실행 → 권한 prompt에 「허용」
-
-        앱 이름은 클립보드에 복사돼 있어 시스템 설정 검색창에 ⌘V로 바로 붙여넣을 수 있습니다.
-        """
+        alert.messageText = String(localized: "권한 일부 재부여 필요")
+        // permission_alert_body는 %@ 자리에 missing 권한 bullet list 삽입
+        let bulletList = missingOrdered.map { "• \($0.localizedName)" }.joined(separator: "\n")
+        alert.informativeText = String(format: String(localized: "permission_alert_body"), bulletList)
         alert.alertStyle = .warning
         if missingOrdered.count > 1 {
-            alert.addButton(withTitle: "모든 패널 열기")
+            alert.addButton(withTitle: String(localized: "모든 패널 열기"))
         }
-        alert.addButton(withTitle: "시스템 설정 열기")
-        alert.addButton(withTitle: "나중에")
+        alert.addButton(withTitle: String(localized: "시스템 설정 열기"))
+        alert.addButton(withTitle: String(localized: "나중에"))
 
         // 사용자가 시스템 설정 검색창에서 빠르게 찾을 수 있게 클립보드에 앱 이름 복사
         NSPasteboard.general.clearContents()
@@ -167,45 +158,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.delegate = self   // menuWillOpen에서 토글 항목 ✓ state 갱신
 
-        let prefItem = NSMenuItem(title: "환경설정...", action: #selector(openPreferences), keyEquivalent: "")
+        let prefItem = NSMenuItem(title: String(localized: "환경설정..."), action: #selector(openPreferences), keyEquivalent: "")
         prefItem.target = self
         menu.addItem(prefItem)
 
         menu.addItem(.separator())
 
         // 빠른 토글 — 환경설정 안 열고 메뉴바에서 바로. 단축키도 함께 표시(metadata).
-        let spotlight = NSMenuItem(title: "스포트라이트  ⌃⌥S", action: #selector(toggleSpotlight), keyEquivalent: "")
+        let spotlight = NSMenuItem(title: String(localized: "스포트라이트  ⌃⌥S"), action: #selector(toggleSpotlight), keyEquivalent: "")
         spotlight.target = self
         menu.addItem(spotlight)
         spotlightMenuItem = spotlight
 
-        let magnifier = NSMenuItem(title: "돋보기  ⌃⌥M", action: #selector(toggleMagnifier), keyEquivalent: "")
+        let magnifier = NSMenuItem(title: String(localized: "돋보기  ⌃⌥M"), action: #selector(toggleMagnifier), keyEquivalent: "")
         magnifier.target = self
         menu.addItem(magnifier)
         magnifierMenuItem = magnifier
 
-        let keystroke = NSMenuItem(title: "키스트로크 표시  ⌃⌥K", action: #selector(toggleKeystroke), keyEquivalent: "")
+        let keystroke = NSMenuItem(title: String(localized: "키스트로크 표시  ⌃⌥K"), action: #selector(toggleKeystroke), keyEquivalent: "")
         keystroke.target = self
         menu.addItem(keystroke)
         keystrokeMenuItem = keystroke
 
         // 발표/녹화용 일시 토글 — overlay window를 외부 screencapture/OBS가 잡을 수 있게 풀어줌.
         // 평소 .none이라 자체 돋보기가 자기 overlay 재캡처 안 함. 앱 재시작 시 자동 OFF.
-        let screenshotMode = NSMenuItem(title: "스크린샷 모드 (캡처 허용)", action: #selector(toggleScreenshotMode), keyEquivalent: "")
+        let screenshotMode = NSMenuItem(title: String(localized: "스크린샷 모드 (캡처 허용)"), action: #selector(toggleScreenshotMode), keyEquivalent: "")
         screenshotMode.target = self
         menu.addItem(screenshotMode)
         screenshotModeMenuItem = screenshotMode
 
         menu.addItem(.separator())
 
-        let ei = NSMenuItem(title: "비활성화", action: #selector(toggleEnabled), keyEquivalent: "")
+        let ei = NSMenuItem(title: String(localized: "비활성화"), action: #selector(toggleEnabled), keyEquivalent: "")
         ei.target = self
         menu.addItem(ei)
         enableMenuItem = ei
 
         menu.addItem(.separator())
 
-        let quitItem = NSMenuItem(title: "종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        let quitItem = NSMenuItem(title: String(localized: "종료"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         quitItem.target = NSApp
         menu.addItem(quitItem)
 
@@ -216,7 +207,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleSpotlight() {
         withAnimation(.easeInOut(duration: 0.35)) { runtime.isSpotlightActive.toggle() }
-        keystrokeOverlay.showStatusNotification(runtime.isSpotlightActive ? "🔦 스포트라이트 켜짐" : "🔦 스포트라이트 꺼짐")
+        keystrokeOverlay.showStatusNotification(String(localized: runtime.isSpotlightActive ? "🔦 스포트라이트 켜짐" : "🔦 스포트라이트 꺼짐"))
     }
 
     @objc private func toggleMagnifier() {
@@ -231,12 +222,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func toggleKeystroke() {
         settings.isKeystrokeEnabled.toggle()
-        keystrokeOverlay.showStatusNotification(settings.isKeystrokeEnabled ? "⌨ 키스트로크 켜짐" : "⌨ 키스트로크 꺼짐")
+        keystrokeOverlay.showStatusNotification(String(localized: settings.isKeystrokeEnabled ? "⌨ 키스트로크 켜짐" : "⌨ 키스트로크 꺼짐"))
     }
 
     @objc private func toggleScreenshotMode() {
         settings.isScreenshotMode.toggle()
-        keystrokeOverlay.showStatusNotification(settings.isScreenshotMode ? "📸 스크린샷 모드 켜짐 (외부 캡처 허용)" : "📸 스크린샷 모드 꺼짐")
+        keystrokeOverlay.showStatusNotification(String(localized: settings.isScreenshotMode ? "📸 스크린샷 모드 켜짐 (외부 캡처 허용)" : "📸 스크린샷 모드 꺼짐"))
     }
 
     @objc private func openPreferences() {
@@ -276,7 +267,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateIcon() {
         let name = isEnabled ? "cursorarrow.rays" : "cursorarrow"
         statusItem?.button?.image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
-        enableMenuItem?.title = isEnabled ? "비활성화" : "✓ 활성화"
+        enableMenuItem?.title = String(localized: isEnabled ? "비활성화" : "✓ 활성화")
     }
 
     // MARK: - Service callbacks

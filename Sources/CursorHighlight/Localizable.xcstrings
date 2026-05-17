@@ -1,0 +1,193 @@
+{
+  "sourceLanguage" : "ko",
+  "version" : "1.0",
+  "strings" : {
+    "환경설정..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Preferences..." }
+        }
+      }
+    },
+    "스포트라이트  ⌃⌥S" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Spotlight  ⌃⌥S" }
+        }
+      }
+    },
+    "돋보기  ⌃⌥M" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Magnifier  ⌃⌥M" }
+        }
+      }
+    },
+    "키스트로크 표시  ⌃⌥K" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Show Keystrokes  ⌃⌥K" }
+        }
+      }
+    },
+    "스크린샷 모드 (캡처 허용)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Screenshot Mode (allow capture)" }
+        }
+      }
+    },
+    "비활성화" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Disable" }
+        }
+      }
+    },
+    "✓ 활성화" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "✓ Enable" }
+        }
+      }
+    },
+    "종료" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Quit" }
+        }
+      }
+    },
+    "권한 일부 재부여 필요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Permissions Need Regranting" }
+        }
+      }
+    },
+    "시스템 설정 열기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Open System Settings" }
+        }
+      }
+    },
+    "모든 패널 열기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Open All Panels" }
+        }
+      }
+    },
+    "나중에" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Later" }
+        }
+      }
+    },
+    "손쉬운 사용" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Accessibility" }
+        }
+      }
+    },
+    "화면 녹화" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Screen Recording" }
+        }
+      }
+    },
+    "입력 모니터링" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Input Monitoring" }
+        }
+      }
+    },
+    "입력 보내기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "Send Input" }
+        }
+      }
+    },
+    "permission_alert_body" : {
+      "comment" : "Body of the launch-time alert listing missing permissions and how to regrant them.",
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : { "state" : "translated", "value" : "CursorHighlight의 다음 권한이 부여되지 않았습니다:\n\n%@\n\n① 「시스템 설정 열기」 클릭\n② 목록에서 CursorHighlight 항목 클릭 후 하단 「-」 버튼으로 제거\n    (이미 토글 ON 상태인데 동작 안 하면 cdhash 변경으로 stuck. 제거 후 재부여만 동작.)\n③ CursorHighlight 다시 실행 → 권한 prompt에 「허용」\n\n앱 이름은 클립보드에 복사돼 있어 시스템 설정 검색창에 ⌘V로 바로 붙여넣을 수 있습니다." }
+        },
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "CursorHighlight does not have these permissions:\n\n%@\n\n① Click \"Open System Settings\"\n② Find CursorHighlight in the list, click it, then the \"-\" button below\n    (Toggling ON does not work after a cdhash change — only removal + regranting does.)\n③ Relaunch CursorHighlight → click \"Allow\" in the permission prompt\n\nThe app name is already copied to your clipboard — paste with ⌘V into System Settings search." }
+        }
+      }
+    },
+    "🔦 스포트라이트 켜짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "🔦 Spotlight on" }
+        }
+      }
+    },
+    "🔦 스포트라이트 꺼짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "🔦 Spotlight off" }
+        }
+      }
+    },
+    "⌨ 키스트로크 켜짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "⌨ Keystrokes on" }
+        }
+      }
+    },
+    "⌨ 키스트로크 꺼짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "⌨ Keystrokes off" }
+        }
+      }
+    },
+    "📸 스크린샷 모드 켜짐 (외부 캡처 허용)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "📸 Screenshot mode on (external capture allowed)" }
+        }
+      }
+    },
+    "📸 스크린샷 모드 꺼짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "📸 Screenshot mode off" }
+        }
+      }
+    },
+    "magnifier_zoom_toast" : {
+      "comment" : "Zoom level toast — %.1f is the zoom multiplier",
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : { "state" : "translated", "value" : "🔍 돋보기 줌 %.1fx" }
+        },
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "🔍 Magnifier zoom %.1fx" }
+        }
+      }
+    },
+    "ring_color_toast" : {
+      "comment" : "Ring color cycle toast — %@ is the localized color name",
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : { "state" : "translated", "value" : "🎨 %@" }
+        },
+        "en" : {
+          "stringUnit" : { "state" : "translated", "value" : "🎨 %@" }
+        }
+      }
+    }
+  }
+}

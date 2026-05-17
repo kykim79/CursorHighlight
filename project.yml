@@ -5,6 +5,8 @@ options:
     macOS: "13.0"
   createIntermediateGroups: true
   xcodeVersion: "16.0"
+  # 다국어: ko가 source language (코드의 hardcoded 한국어), en은 번역.
+  developmentLanguage: ko
 
 settings:
   base:
@@ -12,6 +14,8 @@ settings:
     SWIFT_STRICT_CONCURRENCY: minimal
     MACOSX_DEPLOYMENT_TARGET: "13.0"
     CODE_SIGN_STYLE: Automatic
+    # 번역 누락 키를 fall back으로 base language(ko) 값 사용 — string interpolation fail 방지.
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 
 targets:
   CursorHighlight:
@@ -38,7 +42,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # GitHub Actions release workflow가 git tag에서 추출한 버전으로 override함.
         # 로컬 빌드 기본값 (workflow가 MARKETING_VERSION/CURRENT_PROJECT_VERSION 인자로 덮어씀).
-        MARKETING_VERSION: "0.3.1"
+        MARKETING_VERSION: "0.4.0"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO
 

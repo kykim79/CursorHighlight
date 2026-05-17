@@ -16,6 +16,9 @@ final class PermissionsManager {
         case listenEvent = "입력 모니터링"
         case postEvent = "입력 보내기"
 
+        /// 현재 locale에서 표시할 이름. rawValue를 Localizable.xcstrings 키로 사용.
+        var localizedName: String { String(localized: String.LocalizationValue(rawValue)) }
+
         /// 시스템 설정 → 개인정보 보호 각 항목 URL
         var settingsURL: URL {
             let key: String

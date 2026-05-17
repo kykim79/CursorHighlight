@@ -4,6 +4,31 @@
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-18
+
+### Added
+
+- **영어 다국어 지원 (English localization)** — `Localizable.xcstrings` String Catalog 도입. macOS 시스템 언어가 영어인 사용자에게 영어로 표시. 한국어 사용자는 그대로.
+
+### Localized
+
+- 메뉴바: 환경설정, 스포트라이트, 돋보기, 키스트로크, 스크린샷 모드, 비활성화/활성화, 종료
+- 권한 alert: 제목 + 본문 단계별 안내 + 4개 권한 이름 (손쉬운 사용/화면 녹화/입력 모니터링/입력 보내기) + 버튼 (시스템 설정 열기/모든 패널 열기/나중에)
+- 상태 알림 toast: 스포트라이트/키스트로크/스크린샷 모드 켜짐·꺼짐, 돋보기 줌 level
+
+### Internal
+
+- `project.yml`에 `developmentLanguage: ko` + `LOCALIZATION_PREFERS_STRING_CATALOGS: YES` 설정.
+- `String(localized:)` API 사용 (macOS 12+). 코드의 한국어 literal이 그대로 xcstrings 키로 동작.
+- 빌드 시 `en.lproj` + `ko.lproj` 자동 생성, 시스템 언어 따라 자동 선택.
+
+### Not yet localized (v0.4.x 점진)
+
+- 환경설정 윈도우 전체 (탭 이름, 옵션 라벨, 설명문, 정보 탭의 Motion Semantics 등)
+- 색상 이름 (노란색/빨간색/...) — RingColor.label
+- 색상 cycle toast (🎨 ColorName)
+- README, 설치/권한 안내문
+
 ## [0.3.1] — 2026-05-18
 
 ### Added

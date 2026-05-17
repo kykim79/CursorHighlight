@@ -59,7 +59,7 @@ final class KeyboardHotkeyHandler {
             if event.keyCode == settings.spotlightKeyCode {
                 DispatchQueue.main.async {
                     withAnimation(.easeInOut(duration: 0.35)) { runtime.isSpotlightActive.toggle() }
-                    keystrokeOverlay.showStatusNotification(runtime.isSpotlightActive ? "🔦 스포트라이트 켜짐" : "🔦 스포트라이트 꺼짐")
+                    keystrokeOverlay.showStatusNotification(String(localized: runtime.isSpotlightActive ? "🔦 스포트라이트 켜짐" : "🔦 스포트라이트 꺼짐"))
                 }
                 return
             }
@@ -67,7 +67,7 @@ final class KeyboardHotkeyHandler {
             if event.keyCode == settings.keystrokeShortcutKeyCode {
                 DispatchQueue.main.async {
                     settings.isKeystrokeEnabled.toggle()
-                    keystrokeOverlay.showStatusNotification(settings.isKeystrokeEnabled ? "⌨ 키스트로크 켜짐" : "⌨ 키스트로크 꺼짐")
+                    keystrokeOverlay.showStatusNotification(String(localized: settings.isKeystrokeEnabled ? "⌨ 키스트로크 켜짐" : "⌨ 키스트로크 꺼짐"))
                 }
                 return
             }
@@ -91,7 +91,7 @@ final class KeyboardHotkeyHandler {
                 DispatchQueue.main.async {
                     let newZoom = max(1.5, min(4.0, settings.magnifierZoom + delta))
                     settings.magnifierZoom = newZoom
-                    keystrokeOverlay.showStatusNotification(String(format: "🔍 돋보기 줌 %.1fx", newZoom))
+                    keystrokeOverlay.showStatusNotification(String(format: String(localized: "magnifier_zoom_toast"), newZoom))
                 }
                 return
             }
