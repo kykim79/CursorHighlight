@@ -6,16 +6,6 @@
 
 ---
 
-## P1 — 구조 / 안전성
-
-### #2 ScreenCaptureKit 마이그레이션
-- **위치**: `MagnifierCaptureService.swift` `start()`
-- **문제**: `CGWindowListCreateImage`가 macOS 14+에서 deprecated. 동작은 macOS 16(현재)까지 유지되나 향후 제거 가능. 돋보기가 앱의 핵심 기능 중 하나.
-- **방향**: `SCStream` 기반으로 전환. 한 번 stream 켜놓고 cursor 주변 cropping이 20Hz 폴링보다 효율적.
-- **상태**: 코드에 `// TODO:` 코멘트 표시됨. 별도 세션에서 ~1-2시간 작업.
-
----
-
 ## P2 — DRY / 성능
 
 ### #7 CursorRingView 매개변수 15개 → RingStyle struct
@@ -112,3 +102,12 @@
   - `MagnifierCaptureService.swift` (101줄) — 돋보기 20Hz 캡처
   - `KeyboardHotkeyHandler.swift` (176줄) — 전역 단축키 + 키스트로크
   - AppDelegate 543 → 297줄 (-45%)
+
+`7d6edeb refactor: 돋보기 캡처를 ScreenCaptureKit(SCStream)으로 마이그레이션`:
+
+- ✅ **#2** ScreenCaptureKit 마이그레이션 — 더 이상 `CGWindowListCreateImage`
+  (deprecated) 참조 없음. SCStream push 모델 + CIImage cropping.
+  이중 모니터 환경 완전 지원 — cursor가 다른 디스플레이로 옮기면 stream을
+  그 디스플레이로 자동 재구성 (displayID 매칭 + screenContaining).
+  `PermissionsManager.swift` 권한 polling이 false 감지 시 magnifier 강제
+  off 처리 제거 (timing 회귀 방지). MagnifierCaptureService 101 → 226줄.
