@@ -524,9 +524,10 @@ private struct InfoTab: View {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
-        // HOMEBREW_NO_AUTO_UPDATE: tap 갱신 polling 생략 (이미 cask metadata는 GitHub API 시점 기준)
+        // HOMEBREW_NO_AUTO_UPDATE를 켜면 tap fetch도 막혀 local tap이 옛 cask file에 멈춤 →
+        // "이미 latest 설치됨"으로 잘못 판단하는 회귀. v0.2.7부터 auto-update 허용.
+        // analytics + env hints는 출력 노이즈만 줄이는 무해 옵션이라 유지.
         var env = ProcessInfo.processInfo.environment
-        env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
         env["HOMEBREW_NO_ANALYTICS"] = "1"
         env["HOMEBREW_NO_ENV_HINTS"] = "1"
         process.environment = env
@@ -556,6 +557,7 @@ private struct InfoTab: View {
 
     /// brew 출력에서 진행 stage 추정 — 한국어 사용자용 친화 라벨.
     private static func inferStage(from chunk: String) -> String? {
+        if chunk.contains("Auto-updating Homebrew") || chunk.contains("Updated") && chunk.contains("tap") { return "Homebrew 갱신 중..." }
         if chunk.contains("Fetching") { return "다운로드 중..." }
         if chunk.contains("Verified") { return "검증 중..." }
         if chunk.contains("Uninstalling") || chunk.contains("Removing") { return "이전 버전 제거 중..." }

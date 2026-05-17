@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.7] — 2026-05-17
+
+### Fixed
+
+- **Silent 업데이트가 "이미 latest" 잘못 판단** — v0.2.5에서 추가한 `HOMEBREW_NO_AUTO_UPDATE=1` 환경 변수가 tap fetch도 막아 local cask file이 옛 버전에 멈춰 "이미 latest 설치됨" 메시지로 no-op 종료하던 회귀. 환경 변수 제거 → brew가 자동으로 tap 갱신 후 upgrade. 진행 stage에 "Homebrew 갱신 중..." 라벨 추가.
+
 ## [0.2.6] — 2026-05-17
 
 ### Added
