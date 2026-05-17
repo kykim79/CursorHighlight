@@ -8,16 +8,13 @@
 
 ## P3 — 배포 / 테스트
 
-### #11 테스트 인프라 (순수 함수만이라도)
-- **위치**: 프로젝트 전체에 테스트 0개
-- **문제**: 흔들기 감지 같은 알고리즘은 회귀 위험이 큰데 매번 직접 흔들어보며 검증해야 함.
-- **방향**: GUI 이벤트 핸들링은 어렵지만 순수 함수는 충분히 테스트 가능:
-  - `MouseEventMonitor.processMove` — 흔들기 감지 (시뮬레이션 데이터)
-  - `KeyboardHotkeyHandler.formatKey` — 키 포맷팅 (NSEvent mock)
-  - `CursorRuntimeState.updateDragAngle` — atan2 wrapping (±π 경계)
-  - `Persisted` — read/write/debounce 동작, enum/CGFloat/UInt16 bridging
-  - 좌표계 변환 (Quartz top-left ↔ Cocoa bottom-left)
-- **시작**: `Tests/CursorHighlightTests/` 디렉토리 + `project.yml`에 test target 추가.
+### #11-followup MouseEventMonitor 흔들기 감지 테스트
+- **위치**: `MouseEventMonitor.processMove`
+- **상태**: #11에서 인프라 + 3개 영역(Persisted, DragAngle, KeyFormat) 커버됨.
+  흔들기 감지는 알고리즘 추출 refactor 필요해서 보류.
+- **방향**: `private func processMove`를 pure function으로 추출 — `ShakeState` struct +
+  `static func detectShake(state: inout ShakeState, point: CGPoint, now: TimeInterval) -> Bool`.
+  시간을 인자로 받게 해 테스트에서 시뮬레이션 데이터로 검증 가능.
 
 ### #12 Notarization (Gatekeeper 마찰 제거)
 - **위치**: 배포 절차, README
@@ -109,3 +106,12 @@
 
 - ✅ **#9** `EffectsState.addScrollEffect`의 multi-monitor race 해결.
   `NSScreen.frame.contains`로 point가 속한 화면을 찾아 그 화면 effect만 제거.
+
+`3562071 test: 단위 테스트 인프라 + 24개 테스트 추가`:
+
+- ✅ **#11** `project.yml`에 standalone test bundle 추가 + 24개 테스트 통과:
+  - PersistedTests (11): native 타입·enum·debounce·objectWillChange
+  - DragAngleTests (6): ±π wrapping, 한 바퀴 누적, endDrag 리셋
+  - KeyFormatTests (7): 모디파이어 게이트, special keys, 순서
+  - 실행: `xcodebuild test -project CursorHighlight.xcodeproj -scheme CursorHighlight -destination 'platform=macOS'`
+  - 흔들기 감지는 알고리즘 추출 refactor 필요해 보류 (P3 #11-followup).
