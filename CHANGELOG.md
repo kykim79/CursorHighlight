@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.9] — 2026-05-17
+
+### Fixed
+
+- **Launch 시 권한 체크 false negative** — v0.2.6은 launch 1초 후 단발 체크라 TCC 권한 동기화가 안 끝난 상태에서 false 반환 → 이미 부여된 권한도 missing이라 안내하던 문제. 1초 간격으로 5번 retry, 모든 시도에서 일관되게 missing인 권한만 진짜 missing 판단. 총 대기 약 6초. 한 번이라도 부여 검출되면 그 권한은 OK 처리.
+
 ## [0.2.8] — 2026-05-17
 
 ### Fixed
