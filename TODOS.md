@@ -29,11 +29,6 @@
 공통: `RingMotion` struct에 새 property + `OverlayContentView`에서 분기. `CursorSettings`에
 `@Persisted` 토글 추가. 인프라 이미 잘 잡혀 있어 새 옵션 추가는 한 항목당 ~20-40줄.
 
-### #15 Snap Back — 드래그 종료 시 spring overshoot
-- **목적**: 드래그 끝나면 ring이 살짝 튕겨 원상복귀. 만족스러운 마이크로인터랙션.
-- **구현**: `endDrag()`에 spring response 더 작은 값으로 추가 단계. 또는 SwiftUI animation timing 조정.
-- **난이도**: 低 (~10줄). 호불호 적음, 안전.
-
 ### #16 Velocity Stretch — 속도에 비례한 jelly stretch
 - **목적**: 현재는 isDragging=true면 일률 stretch. 속도 알면 느릴 땐 거의 원형, 빠를 땐 더 길게.
 - **구현**: `RingMotion`에 dragVelocity → `scaleEffect(x: 1.0 + velocity * k, y: 1.0 - velocity * k')`.
@@ -162,6 +157,11 @@
 
 - ✅ **#14 Speed Glow** — 드래그 속도(pt/s)에 비례해 ring glow 강화.
   EMA(0.3) smoothing + 1000pt/s에서 max +1.5 boost. 토글 없이 default on.
+
+`a6287f2 feat: 드래그 종료 시 spring snap back (#15)`:
+
+- ✅ **#15 Snap Back** — endDrag()에 ringClickScale 1.12 expand → spring back
+  마이크로인터랙션 추가. "탁! 놓았다" 피드백.
 
 `d772fec ci: GitHub Actions release workflow + Homebrew tap 자동 배포` 외 다수:
 
