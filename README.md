@@ -4,7 +4,7 @@ macOS 메뉴바 앱. 마우스 커서를 시각적으로 강조해 화면 녹화
 
 > 🇺🇸 [English README](README.en.md)
 
-![스포트라이트 + 보라색 커서 링](docs/screenshots/01-hero.png)
+![보라색 커서 링 + 클릭 효과 (Xcode에서)](docs/screenshots/01-hero-v2.png)
 
 ## 기능
 

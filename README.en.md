@@ -4,7 +4,7 @@ macOS menu bar app. Visually emphasizes the mouse cursor for screen recording, p
 
 > 🇰🇷 [한국어 README](README.md)
 
-![Spotlight + purple cursor ring](docs/screenshots/01-hero.png)
+![Purple cursor ring + click effects (in Xcode)](docs/screenshots/01-hero-v2.png)
 
 ## Features
 
