@@ -17,15 +17,8 @@ class MouseEventMonitor {
     private var selfPtr: UnsafeMutableRawPointer?
     private var tapThread: Thread?
 
-    // 흔들기 감지
-    private struct PosRecord {
-        let x: CGFloat
-        let t: TimeInterval
-    }
-    private var recent: [PosRecord] = []
-    private var lastVx: CGFloat = 0
-    private var dirChanges: Int = 0
-    private var lastChangeTime: TimeInterval = 0
+    // 흔들기 감지 — 알고리즘은 ShakeState.swift에 추출(테스트 가능).
+    private var shakeState = ShakeState()
 
     // 스크롤 디바운스
     private var lastScrollTime: TimeInterval = 0
@@ -168,34 +161,11 @@ class MouseEventMonitor {
 
     private func processMove(_ point: CGPoint) {
         let now = Date().timeIntervalSinceReferenceDate
-        recent.append(PosRecord(x: point.x, t: now))
-        // 윈도우 밖 항목만 앞에서 제거 — filter로 매번 새 배열 할당 회피
-        while let first = recent.first, now - first.t >= 0.5 {
-            recent.removeFirst()
+        if shakeState.record(x: point.x, y: point.y, at: now) {
+            let capturedPoint = point
+            DispatchQueue.main.async { [weak self] in self?.onShake?(capturedPoint) }
         }
-        guard recent.count >= 2 else { return }
-
-        let prev = recent[recent.count - 2]
-        let curr = recent[recent.count - 1]
-        let dt = curr.t - prev.t
-        guard dt > 0.001 else { return }
-
-        let vx = (curr.x - prev.x) / dt
-        if abs(vx) > 300, abs(lastVx) > 300, vx.sign != lastVx.sign {
-            if now - lastChangeTime < 0.5 { dirChanges += 1 } else { dirChanges = 1 }
-            lastChangeTime = now
-            if dirChanges >= 3 {
-                dirChanges = 0
-                let capturedPoint = point
-                DispatchQueue.main.async { [weak self] in self?.onShake?(capturedPoint) }
-            }
-        }
-        if abs(vx) > 100 { lastVx = vx }
     }
 
     deinit { stop() }
-}
-
-private extension FloatingPoint {
-    var sign: Int { self >= 0 ? 1 : -1 }
 }
