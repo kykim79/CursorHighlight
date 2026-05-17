@@ -60,14 +60,13 @@ class MouseEventMonitor {
                 guard let refcon else { return Unmanaged.passRetained(event) }
                 let m = Unmanaged<MouseEventMonitor>.fromOpaque(refcon).takeUnretainedValue()
 
-                // 시스템이 메인 스레드 과부하로 tap을 비활성화하면 즉시 재활성화
-                if type.rawValue == 0xFFFFFFFE || type.rawValue == 0xFFFFFFFF {
-                    if let tap = m.eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
-                    return nil
-                }
-
                 let loc = event.location
                 switch type {
+                case .tapDisabledByTimeout, .tapDisabledByUserInput:
+                    // 시스템이 메인 스레드 과부하로 tap을 비활성화하면 즉시 재활성화
+                    if let tap = m.eventTap { CGEvent.tapEnable(tap: tap, enable: true) }
+                    return Unmanaged.passRetained(event)
+
                 case .mouseMoved:
                     m.processMove(loc)
                     DispatchQueue.main.async { m.onMouseMove?(loc) }

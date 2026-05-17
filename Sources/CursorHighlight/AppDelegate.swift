@@ -77,7 +77,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func openPreferences() {
         if preferencesController == nil {
-            preferencesController = PreferencesWindowController(state: cursorState)
+            let controller = PreferencesWindowController(state: cursorState)
+            // 윈도우를 닫으면 controller를 풀어줘 SwiftUI view tree 전체를 해제한다.
+            // 살려두면 보이지 않아도 @Published(cursorPosition 60Hz) 변경마다 layout이 재계산됨.
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: controller.window,
+                queue: .main
+            ) { [weak self] _ in
+                self?.preferencesController = nil
+            }
+            preferencesController = controller
         }
         NSApp.activate(ignoringOtherApps: true)
         preferencesController?.showWindow(nil)
@@ -88,10 +98,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private static func isPasswordFieldFocused() -> Bool {
         let system = AXUIElementCreateSystemWide()
         var focusedRef: AnyObject?
-        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success else {
+        guard AXUIElementCopyAttributeValue(system, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
+              let focused = focusedRef,
+              CFGetTypeID(focused) == AXUIElementGetTypeID() else {
             return false
         }
-        let element = focusedRef as! AXUIElement
+        let element = focused as! AXUIElement
         var subroleRef: AnyObject?
         guard AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subroleRef) == .success,
               let subrole = subroleRef as? String else { return false }
@@ -362,6 +374,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - 돋보기 캡처
+    // TODO: CGWindowListCreateImage는 macOS 14+에서 deprecated. 향후 ScreenCaptureKit(SCStream) 마이그레이션 필요.
 
     // isMagnifierActive=true일 때만 캡처 Timer 시작 — 꺼져있을 때 CPU 0
     private func observeMagnifierToggle() {
