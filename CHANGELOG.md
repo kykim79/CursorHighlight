@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.2.6] — 2026-05-17
+
+### Added
+
+- **Launch 시 권한 자동 체크 + 안내** — 손쉬운 사용 / 화면 녹화 / 입력 모니터링 / 입력 보내기 4개 권한을 launch 1초 후 자동 확인. 일부라도 missing 시 NSAlert로 어느 권한이 부여 안 됐는지 명시 + 「시스템 설정 열기」 버튼으로 첫 missing 패널 직접 오픈. brew upgrade (cdhash 변경)로 권한이 reset되는 macOS 동작에 대비.
+
+### Internal
+
+- `PermissionsManager.PermissionType` enum 추가 (4개 권한 + 각 settingsURL).
+- `IOHIDCheckAccess`로 ListenEvent/PostEvent 권한 상태 prompt 없이 조회.
+- 기존 단발 `requestAccessibility()` 호출 제거 — 새 통합 alert로 대체.
+
 ## [0.2.5] — 2026-05-17
 
 ### Changed
