@@ -351,6 +351,11 @@ private struct InfoTab: View {
     @State private var updateMessage: String = ""
     @State private var checking: Bool = false
     @State private var newerVersion: String? = nil   // 최신 release tag (예: "0.1.2"). nil이면 업데이트 없음.
+    // in-app silent upgrade 상태
+    @State private var upgrading: Bool = false
+    @State private var upgradeStage: String = ""
+    @State private var upgradeError: String? = nil
+    @State private var upgradeOutput: String = ""
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -379,27 +384,58 @@ private struct InfoTab: View {
             }
 
             Section("업데이트") {
-                if !updateMessage.isEmpty {
-                    Text(updateMessage).font(.caption).foregroundColor(.secondary)
-                }
-                HStack(spacing: 8) {
-                    Button(checking ? "확인 중..." : "업데이트 확인") {
-                        Task { await checkForUpdate() }
+                if upgrading {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(upgradeStage).font(.caption).foregroundColor(.secondary)
                     }
-                    .disabled(checking)
-                    if newerVersion != nil {
-                        Button("지금 업데이트") { runHomebrewUpgrade() }
-                            .buttonStyle(.borderedProminent)
-                        Button("Release 페이지") {
-                            if let url = URL(string: "https://github.com/kykim79/CursorHighlight/releases/latest") {
-                                NSWorkspace.shared.open(url)
+                } else if let error = upgradeError {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(error).font(.caption).foregroundColor(.red)
+                        if !upgradeOutput.isEmpty {
+                            ScrollView {
+                                Text(upgradeOutput)
+                                    .font(.system(.caption2, design: .monospaced))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .frame(maxHeight: 80)
+                            .padding(6)
+                            .background(Color(NSColor.textBackgroundColor))
+                            .cornerRadius(4)
+                        }
+                        HStack(spacing: 8) {
+                            Button("Terminal로 재시도") { runUpgradeInTerminal() }
+                            Button("Release 페이지") {
+                                if let url = URL(string: "https://github.com/kykim79/CursorHighlight/releases/latest") {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }
+                            Button("닫기") {
+                                upgradeError = nil
+                                upgradeOutput = ""
                             }
                         }
                     }
-                }
-                if newerVersion != nil {
-                    Text("「지금 업데이트」는 Terminal에서 `brew upgrade --cask kykim79/tap/cursorhighlight`를 실행합니다. Homebrew 미사용 시 Release 페이지에서 zip 다운로드.")
-                        .font(.caption2).foregroundColor(.secondary)
+                } else {
+                    if !updateMessage.isEmpty {
+                        Text(updateMessage).font(.caption).foregroundColor(.secondary)
+                    }
+                    HStack(spacing: 8) {
+                        Button(checking ? "확인 중..." : "업데이트 확인") {
+                            Task { await checkForUpdate() }
+                        }
+                        .disabled(checking)
+                        if newerVersion != nil {
+                            Button("지금 업데이트") { runHomebrewUpgrade() }
+                                .buttonStyle(.borderedProminent)
+                            Button("Release 페이지") {
+                                if let url = URL(string: "https://github.com/kykim79/CursorHighlight/releases/latest") {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -439,15 +475,122 @@ private struct InfoTab: View {
         }
     }
 
-    /// "지금 업데이트" 버튼 — 임시 shell script 만든 후 Terminal.app으로 명시적으로 열어 실행.
-    /// `/usr/bin/open -a Terminal` 사용 — .sh default handler가 다른 앱(VS Code 등)으로 바뀌어도 안정.
-    /// 사용자 zsh 환경(PATH, brew 위치)을 그대로 받아 Apple Silicon/Intel 모두 동작.
+    /// "지금 업데이트" 버튼 — silent in-app brew upgrade. 진행 spinner + stage label.
+    /// 성공 시 자동 재시작. 실패 시 brew 출력 표시 + Terminal fallback 버튼 노출.
     private func runHomebrewUpgrade() {
+        upgrading = true
+        upgradeStage = "업데이트 시작..."
+        upgradeError = nil
+        upgradeOutput = ""
+        Task {
+            // LSUIElement 앱은 PATH가 최소라 brew 절대 경로 명시.
+            // Apple Silicon: /opt/homebrew/bin/brew, Intel: /usr/local/bin/brew
+            let brewPaths = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
+            guard let brewPath = brewPaths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+                upgrading = false
+                upgradeError = "Homebrew를 찾을 수 없습니다 (/opt/homebrew/bin/brew 또는 /usr/local/bin/brew). Release 페이지에서 zip을 직접 다운로드하세요."
+                return
+            }
+            do {
+                let result = try await runBrewUpgrade(brewPath: brewPath)
+                upgrading = false
+                if result.exitCode == 0 {
+                    upgradeStage = "✓ v\(newerVersion ?? "") 설치 완료. 곧 재시작됩니다..."
+                    // re-enable spinner 영역에 success 메시지 잠깐 표시
+                    upgrading = true
+                    try? await Task.sleep(for: .milliseconds(1500))
+                    relaunchApp()
+                } else {
+                    upgradeError = "업데이트 실패 (exit \(result.exitCode))"
+                    // brew 출력은 길 수 있어 마지막 부분만 잘라 표시
+                    upgradeOutput = String(result.output.suffix(800))
+                }
+            } catch {
+                upgrading = false
+                upgradeError = "실행 실패: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private struct BrewResult { let exitCode: Int32; let output: String }
+
+    /// brew upgrade를 Process로 실행, stdout/stderr 합쳐 capture.
+    /// `process.waitUntilExit()`이 blocking이라 Task.detached로 분리.
+    /// stage 업데이트는 출력 stream을 line 단위로 읽어 키워드 매칭.
+    private func runBrewUpgrade(brewPath: String) async throws -> BrewResult {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: brewPath)
+        process.arguments = ["upgrade", "--cask", "kykim79/tap/cursorhighlight"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        // HOMEBREW_NO_AUTO_UPDATE: tap 갱신 polling 생략 (이미 cask metadata는 GitHub API 시점 기준)
+        var env = ProcessInfo.processInfo.environment
+        env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        env["HOMEBREW_NO_ANALYTICS"] = "1"
+        env["HOMEBREW_NO_ENV_HINTS"] = "1"
+        process.environment = env
+
+        // 출력 stream 읽기 — readabilityHandler로 line별 stage 업데이트
+        var collectedOutput = ""
+        let handle = pipe.fileHandleForReading
+        handle.readabilityHandler = { fh in
+            let data = fh.availableData
+            guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
+            collectedOutput += chunk
+            // 메인 스레드에서 stage 추정
+            let stage = Self.inferStage(from: chunk)
+            if let stage {
+                Task { @MainActor in self.upgradeStage = stage }
+            }
+        }
+
+        try process.run()
+        return try await withCheckedThrowingContinuation { continuation in
+            process.terminationHandler = { proc in
+                handle.readabilityHandler = nil
+                continuation.resume(returning: BrewResult(exitCode: proc.terminationStatus, output: collectedOutput))
+            }
+        }
+    }
+
+    /// brew 출력에서 진행 stage 추정 — 한국어 사용자용 친화 라벨.
+    private static func inferStage(from chunk: String) -> String? {
+        if chunk.contains("Fetching") { return "다운로드 중..." }
+        if chunk.contains("Verified") { return "검증 중..." }
+        if chunk.contains("Uninstalling") || chunk.contains("Removing") { return "이전 버전 제거 중..." }
+        if chunk.contains("Moving") || chunk.contains("Installing") { return "설치 중..." }
+        if chunk.contains("successfully upgraded") || chunk.contains("successfully installed") { return "마무리 중..." }
+        return nil
+    }
+
+    /// 업데이트 완료 후 자기 자신 재시작 — open -n 으로 새 instance 띄우고 현재 process 종료.
+    /// /Applications에 이미 brew가 새 .app을 cp한 상태.
+    private func relaunchApp() {
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        proc.arguments = ["-n", "/Applications/CursorHighlight.app"]
+        do {
+            try proc.run()
+            // open이 새 instance를 띄울 시간을 잠깐 주고 종료
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                NSApp.terminate(nil)
+            }
+        } catch {
+            upgrading = false
+            upgradeError = "재시작 실패: \(error.localizedDescription)"
+        }
+    }
+
+    /// in-app upgrade 실패 시 fallback — 기존 Terminal script 흐름.
+    /// brew가 stuck/대화형 prompt 요구 같은 edge case에 사용자가 직접 진행 가능.
+    private func runUpgradeInTerminal() {
+        upgradeError = nil
+        upgradeOutput = ""
         let scriptPath = NSTemporaryDirectory() + "cursorhighlight-upgrade.sh"
-        // zsh에서 $status는 read-only built-in이라 직접 if 구조로 — 별도 변수 회피.
         let script = """
         #!/bin/zsh
-        echo "▶ CursorHighlight 업데이트"
+        echo "▶ CursorHighlight 업데이트 (Terminal fallback)"
         echo "  명령: brew upgrade --cask kykim79/tap/cursorhighlight"
         echo
         if brew upgrade --cask kykim79/tap/cursorhighlight; then
@@ -456,7 +599,7 @@ private struct InfoTab: View {
             pkill -x CursorHighlight 2>/dev/null
             sleep 0.5
             open -a CursorHighlight
-            echo "  재시작됨. 새 버전이 메뉴바에 표시됩니다."
+            echo "  재시작됨."
         else
             echo
             echo "✗ 업데이트 실패. 위 출력을 확인하세요."
@@ -467,17 +610,12 @@ private struct InfoTab: View {
         do {
             try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptPath)
-        } catch {
-            updateMessage = "스크립트 생성 실패: \(error.localizedDescription)"
-            return
-        }
-        let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        proc.arguments = ["-a", "Terminal", scriptPath]
-        do {
+            let proc = Process()
+            proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            proc.arguments = ["-a", "Terminal", scriptPath]
             try proc.run()
         } catch {
-            updateMessage = "Terminal 실행 실패: \(error.localizedDescription)"
+            upgradeError = "Terminal 실행 실패: \(error.localizedDescription)"
         }
     }
 }

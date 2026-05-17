@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.2.5] — 2026-05-17
+
+### Changed
+
+- **Silent in-app 업데이트** — "지금 업데이트" 클릭 시 Terminal.app을 띄우지 않고 환경설정 안에서 spinner + 진행 stage(다운로드 중/검증 중/설치 중...) 표시. 성공 시 자동 재시작.
+- **실패 시 Terminal fallback** — brew 실패하면 마지막 출력 일부를 monospace로 표시 + 「Terminal로 재시도」 버튼. brew stuck 같은 edge case에 사용자가 직접 대응 가능.
+
+### Internal
+
+- `Process()`로 `/opt/homebrew/bin/brew` 직접 호출 (Apple Silicon) — Intel `/usr/local/bin/brew` fallback.
+- LSUIElement는 PATH 최소라 brew 절대 경로 명시.
+- `HOMEBREW_NO_AUTO_UPDATE=1` + `HOMEBREW_NO_ANALYTICS=1` + `HOMEBREW_NO_ENV_HINTS=1` 으로 출력 깔끔 + 속도 빠르게.
+
 ## [0.2.4] — 2026-05-17
 
 ### Changed
