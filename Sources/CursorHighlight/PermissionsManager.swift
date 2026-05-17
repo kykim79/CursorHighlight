@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import ScreenCaptureKit
 
 // MARK: - PermissionsManager
 //
@@ -36,8 +37,8 @@ final class PermissionsManager {
         if #available(macOS 14.0, *) {
             CGRequestScreenCaptureAccess()
         } else {
-            // macOS 13: 직접 캡처 시도로 프롬프트 유도
-            _ = CGWindowListCreateImage(.null, .optionOnScreenOnly, kCGNullWindowID, .bestResolution)
+            // macOS 13: SCShareableContent 조회로 프롬프트 유도 (deprecated API 없이)
+            Task { _ = try? await SCShareableContent.current }
         }
         // 시스템 설정도 함께 열어서 사용자가 바로 활성화할 수 있게
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
@@ -48,7 +49,7 @@ final class PermissionsManager {
             // 프로세스 캐시 없이 TCC 데이터베이스를 직접 조회 — 프롬프트 없음
             return CGPreflightScreenCaptureAccess()
         }
-        // macOS 13: kCGWindowName 유무로 확인
+        // macOS 13: kCGWindowName 유무로 확인 (CGWindowListCopyWindowInfo는 아직 supported)
         let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
         return list.contains { $0[kCGWindowName as String] != nil }
     }
@@ -71,9 +72,10 @@ final class PermissionsManager {
                     // 권한 부여됨 → 더 이상 polling 불필요
                     self.permissionCheckTimer?.invalidate()
                     self.permissionCheckTimer = nil
-                } else {
-                    self.runtime?.isMagnifierActive = false
                 }
+                // 권한이 사라진 경우 isMagnifierActive를 강제 false로 끄지 않는다 —
+                // SCStream start가 권한 부족이면 catch에서 처리하고, 이미 동작 중이면 자체 종료.
+                // 여기서 강제 false 하면 권한 부여 직후 timing 이슈로 stream이 1초만에 stop되는 회귀 발생.
             }
         }
     }
