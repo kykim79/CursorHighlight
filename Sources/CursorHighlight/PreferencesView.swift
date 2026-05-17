@@ -206,6 +206,7 @@ private struct BehaviorTab: View {
                 Toggle("커서 트레일", isOn: $settings.isTrailEnabled)
                 Toggle("드래그 앵커 라인 (100pt 또는 1초 이상 드래그 시 자동 표시)", isOn: $settings.isAnchoredLineEnabled)
                 Toggle("드래그 컴맷 테일 (드래그 중 cursor 뒤 streak)", isOn: $settings.isCometTailEnabled)
+                Toggle("드래그 각도 라벨 (도면·일러스트레이션용)", isOn: $settings.isDragAngleLabelEnabled)
                 Toggle("우클릭에 링 색상 적용", isOn: $settings.rightClickUsesRingColor)
                 Toggle("녹화·발표·회의 앱 활성화 시 자동 활성화", isOn: $settings.autoEnableOnRecording)
                 Toggle("로그인 시 자동 실행", isOn: $launchAtLogin)
@@ -224,7 +225,7 @@ private struct MagnifierTab: View {
     @ObservedObject var settings: CursorSettings
     @ObservedObject var runtime: CursorRuntimeState
 
-    private let zoomOptions: [(Double, String)] = [(1.5,"1.5×"), (2.0,"2×"), (3.0,"3×"), (4.0,"4×")]
+    // zoomOptions 제거 — Slider로 대체 (단축키 ⌃⌥= / ⌃⌥-의 0.5 step과 일관)
     private let sizeOptions: [(CGFloat, String)] = [(160,"작게"), (200,"보통"), (260,"크게"), (320,"매우 크게")]
 
     var body: some View {
@@ -261,14 +262,13 @@ private struct MagnifierTab: View {
                 ))
 
                 LabeledContent("배율") {
-                    Picker("배율", selection: $settings.magnifierZoom) {
-                        ForEach(zoomOptions, id: \.0) { zoom, label in
-                            Text(label).tag(zoom)
-                        }
+                    HStack(spacing: 8) {
+                        Slider(value: $settings.magnifierZoom, in: 1.5...4.0, step: 0.5)
+                            .frame(width: 180)
+                        Text(String(format: "%.1f×", settings.magnifierZoom))
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 36, alignment: .trailing)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 200)
                 }
 
                 LabeledContent("렌즈 크기") {

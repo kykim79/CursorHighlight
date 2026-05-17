@@ -52,6 +52,11 @@ struct OverlayContentView: View {
                 )
             }
 
+            // 드래그 각도 라벨 — 도면/일러스트레이션용. cursor 우상단 작은 라벨.
+            if settings.isDragAngleLabelEnabled && runtime.isDragging && cursorOnScreen {
+                DragAngleLabel(position: localPos, angleRadians: runtime.dragAngle)
+            }
+
             // 클릭 파동
             ForEach(effects.clickEffects) { effect in
                 if screenFrame.contains(effect.position) {
@@ -713,6 +718,54 @@ struct MiddleClickEffectView: View {
                 rotation = 180
             }
         }
+    }
+}
+
+// MARK: - 드래그 각도 라벨
+//
+// 드래그 중 cursor 우상단에 작은 라벨 "↗ 45°". 도면/일러스트레이션에서 각도 확인용.
+// CGEvent y축이 top-left이라 atan2(dy, dx)는 -π~+π. 우리는 +y가 아래로 향하는 화면 좌표라
+// "양수 각도 = 시계방향". 사용자 직관에 맞게 시계 12시=0°, 3시=90°로 표기 (CW positive).
+struct DragAngleLabel: View {
+    let position: CGPoint
+    let angleRadians: Double
+
+    /// CW positive degrees, 0~360 range. 12시=0°, 3시=90°, 6시=180°, 9시=270°.
+    private var displayDegrees: Int {
+        // atan2 결과: -π(180°)~+π. dy 양수=아래(화면 좌표).
+        // dx>0,dy>0 → 우측 아래 → atan2 = +π/4 (45°). 시계 4시 30분 방향.
+        // 시계 0° (12시) = 위쪽 = dx=0, dy=-1 → atan2(-1, 0) = -π/2 (-90°)
+        // 따라서 raw atan2에 +90° 후 mod 360
+        let raw = angleRadians * 180 / .pi
+        let cw = raw + 90  // 12시 기준으로 회전
+        return ((Int(cw.rounded()) % 360) + 360) % 360
+    }
+
+    /// 각도 → 8방향 화살표 (직관적 추가 단서)
+    private var directionArrow: String {
+        switch displayDegrees {
+        case 338...360, 0..<23:   return "↑"
+        case 23..<68:             return "↗"
+        case 68..<113:            return "→"
+        case 113..<158:           return "↘"
+        case 158..<203:           return "↓"
+        case 203..<248:           return "↙"
+        case 248..<293:           return "←"
+        case 293..<338:           return "↖"
+        default:                  return "•"
+        }
+    }
+
+    var body: some View {
+        Text("\(directionArrow) \(displayDegrees)°")
+            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(Color.black.opacity(0.72)))
+            .offset(x: 36, y: -28)
+            .position(position)
+            .allowsHitTesting(false)
     }
 }
 

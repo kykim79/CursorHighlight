@@ -104,6 +104,18 @@ final class KeyboardHotkeyHandler {
                 DispatchQueue.main.async { settings.ringColor = color }
                 return
             }
+            // ⌃⌥0 다음 색상으로 순환 — 발표 중 빠른 색 변경용
+            // (1~6 개별 키 누르기 귀찮을 때, 한 키로 다음 색)
+            if event.keyCode == 29 {  // "0" key
+                DispatchQueue.main.async {
+                    let cases = CursorSettings.RingColor.allCases
+                    let currentIndex = cases.firstIndex(of: settings.ringColor) ?? 0
+                    let next = cases[(currentIndex + 1) % cases.count]
+                    settings.ringColor = next
+                    keystrokeOverlay.showStatusNotification("🎨 \(next.label)")
+                }
+                return
+            }
         }
 
         // ⌘⇧3/4/5 스크린샷 — 오버레이 일시 숨김
