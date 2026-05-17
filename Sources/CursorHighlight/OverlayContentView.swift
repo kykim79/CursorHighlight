@@ -73,6 +73,13 @@ struct OverlayContentView: View {
                 }
             }
 
+            // 휠 클릭 (button 2) — 회전 파동
+            ForEach(effects.middleClickEffects) { effect in
+                if screenFrame.contains(effect.position) {
+                    MiddleClickEffectView(position: toLocal(effect.position), color: effectiveColor, speed: speed)
+                }
+            }
+
             // 흔들기
             ForEach(effects.shakeEffects) { effect in
                 if screenFrame.contains(effect.position) {
@@ -88,6 +95,7 @@ struct OverlayContentView: View {
                             position: toLocal(effect.position),
                             isPositive: effect.isPositive,
                             isVertical: effect.isVertical,
+                            magnitude: effect.magnitude,
                             speed: speed
                         )
                     }
@@ -626,6 +634,7 @@ struct ScrollIndicatorView: View {
     let position: CGPoint
     let isPositive: Bool
     let isVertical: Bool
+    let magnitude: CGFloat   // 스크롤 양 — 화살표 크기 비례
     let speed: Double
     // 시작: 커서 위 36pt baseline. onAppear에서 스크롤 방향으로 ±dist 추가 이동.
     @State private var opacity: Double = 0.9
@@ -636,9 +645,15 @@ struct ScrollIndicatorView: View {
         else          { return isPositive ? "→" : "←" }
     }
 
+    /// magnitude→폰트 사이즈 매핑. 트랙패드 1지손(~5) = 18pt(기본), 휠 한 칸(~10) = 22pt, 강한 swipe(50+) = 36pt.
+    private var fontSize: CGFloat {
+        let clamped = min(max(magnitude, 3), 60)
+        return 16 + clamped * 0.36   // 3→17.1, 10→19.6, 30→26.8, 60→37.6
+    }
+
     var body: some View {
         Text(arrow)
-            .font(.system(size: 20, weight: .bold))
+            .font(.system(size: fontSize, weight: .bold))
             .foregroundColor(.white)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -660,6 +675,57 @@ struct ScrollIndicatorView: View {
                     opacity = 0
                 }
             }
+    }
+}
+
+// MARK: - 휠 클릭 (button 2) — 회전 파동
+//
+// 두 개의 짧은 호(arc)가 반대 방향으로 회전하며 확장 fade out — 좌/우 클릭의 단순 파동과 차별.
+// "휠 클릭"의 회전 의미가 시각적으로 전달됨.
+struct MiddleClickEffectView: View {
+    let position: CGPoint
+    let color: Color
+    let speed: Double
+    @State private var scale: CGFloat = 0.3
+    @State private var opacity: Double = 1.0
+    @State private var rotation: Double = 0
+
+    var body: some View {
+        ZStack {
+            // 시계방향 호 (위쪽 1/4)
+            Arc(startAngle: .degrees(-45), endAngle: .degrees(45))
+                .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .frame(width: 70, height: 70)
+                .rotationEffect(.degrees(rotation))
+            // 반시계 호 (아래쪽 1/4)
+            Arc(startAngle: .degrees(135), endAngle: .degrees(225))
+                .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .frame(width: 70, height: 70)
+                .rotationEffect(.degrees(-rotation))
+        }
+        .scaleEffect(scale)
+        .opacity(opacity)
+        .position(position)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.7 * speed)) {
+                scale = 1.6
+                opacity = 0
+                rotation = 180
+            }
+        }
+    }
+}
+
+/// 단순 호 Shape — startAngle ~ endAngle 사이 호만 그림.
+private struct Arc: Shape {
+    let startAngle: Angle
+    let endAngle: Angle
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let radius = min(rect.width, rect.height) / 2
+        path.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
+        return path
     }
 }
 

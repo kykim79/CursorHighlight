@@ -6,8 +6,9 @@ class MouseEventMonitor {
     var onMouseMove: ((CGPoint) -> Void)?
     var onLeftClick: ((CGPoint, Bool) -> Void)?   // (position, isDouble)
     var onRightClick: ((CGPoint) -> Void)?
+    var onMiddleClick: ((CGPoint) -> Void)?       // 휠 클릭 (button 2)
     var onShake: ((CGPoint) -> Void)?
-    var onScroll: ((CGPoint, Bool, Bool) -> Void)? // (position, isPositive, isVertical)
+    var onScroll: ((CGPoint, Bool, Bool, CGFloat) -> Void)? // (position, isPositive, isVertical, magnitude)
     var onDragStart: ((CGPoint) -> Void)?  // 시작 위치 (Quartz 좌표, AppDelegate가 Cocoa로 변환)
     var onDragAngle: ((Double, CGFloat) -> Void)?  // (angle in radians, velocity in pt/s)
     var onDragEnd: (() -> Void)?
@@ -39,6 +40,7 @@ class MouseEventMonitor {
             (1 << CGEventType.leftMouseDown.rawValue) |
             (1 << CGEventType.leftMouseUp.rawValue) |
             (1 << CGEventType.rightMouseDown.rawValue) |
+            (1 << CGEventType.otherMouseDown.rawValue) |  // 휠 클릭(button 2) 및 나머지
             (1 << CGEventType.leftMouseDragged.rawValue) |
             (1 << CGEventType.scrollWheel.rawValue)
 
@@ -103,6 +105,13 @@ class MouseEventMonitor {
                 case .rightMouseDown:
                     DispatchQueue.main.async { m.onRightClick?(loc) }
 
+                case .otherMouseDown:
+                    // mouseEventButtonNumber: 0=left, 1=right, 2=middle, 3+=extra
+                    let button = event.getIntegerValueField(.mouseEventButtonNumber)
+                    if button == 2 {
+                        DispatchQueue.main.async { m.onMiddleClick?(loc) }
+                    }
+
                 case .scrollWheel:
                     let deltaV = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)
                     let deltaH = event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)
@@ -112,11 +121,13 @@ class MouseEventMonitor {
                     guard delta != 0 else { break }
                     // vertical: negative=up / horizontal: positive=right
                     let isPositive = isVertical ? (delta < 0) : (delta > 0)
+                    // magnitude (absolute pt delta) — 트랙패드 1지손 ~5, 휠 한 칸 ~10, 강한 swipe ~50+
+                    let magnitude = CGFloat(abs(delta))
                     let key = isVertical ? (isPositive ? "up" : "down") : (isPositive ? "right" : "left")
                     if key != m.lastScrollKey || now - m.lastScrollTime > 0.25 {
                         m.lastScrollTime = now
                         m.lastScrollKey = key
-                        DispatchQueue.main.async { m.onScroll?(loc, isPositive, isVertical) }
+                        DispatchQueue.main.async { m.onScroll?(loc, isPositive, isVertical, magnitude) }
                     }
 
                 default:

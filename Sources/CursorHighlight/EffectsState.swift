@@ -11,6 +11,7 @@ import CoreGraphics
 final class EffectsState: ObservableObject {
     @Published var clickEffects: [ClickEffect] = []
     @Published var doubleClickEffects: [DoubleClickEffect] = []
+    @Published var middleClickEffects: [MiddleClickEffect] = []
     @Published var shakeEffects: [ShakeEffect] = []
     @Published var scrollEffects: [ScrollEffect] = []
     @Published var trailPoints: [TrailPoint] = []
@@ -23,11 +24,15 @@ final class EffectsState: ObservableObject {
     struct DoubleClickEffect: Identifiable {
         let id = UUID(); let position: CGPoint
     }
+    struct MiddleClickEffect: Identifiable {
+        let id = UUID(); let position: CGPoint
+    }
     struct ShakeEffect: Identifiable {
         let id = UUID(); let position: CGPoint
     }
+    /// magnitude: 스크롤 양 (트랙패드 1지손 ~5, 휠 ~10, 강한 swipe ~50+). 화살표 크기 비례용.
     struct ScrollEffect: Identifiable {
-        let id = UUID(); let position: CGPoint; let isPositive: Bool; let isVertical: Bool
+        let id = UUID(); let position: CGPoint; let isPositive: Bool; let isVertical: Bool; let magnitude: CGFloat
     }
     struct TrailPoint: Identifiable {
         let id = UUID(); let position: CGPoint
@@ -64,17 +69,27 @@ final class EffectsState: ObservableObject {
         }
     }
 
-    func addScrollEffect(at point: CGPoint, isPositive: Bool, isVertical: Bool, animationSpeed: Double) {
+    func addScrollEffect(at point: CGPoint, isPositive: Bool, isVertical: Bool, magnitude: CGFloat, animationSpeed: Double) {
         // 같은 화면의 이전 스크롤 효과만 제거 — 다중 모니터에서 다른 화면 효과는 유지.
         // 스크롤은 0.25초 디바운스(MouseEventMonitor)라 NSScreen 쿼리 빈도 낮음.
         if let currentScreen = NSScreen.screens.first(where: { $0.frame.contains(point) }) {
             scrollEffects.removeAll { currentScreen.frame.contains($0.position) }
         }
-        let effect = ScrollEffect(position: point, isPositive: isPositive, isVertical: isVertical)
+        let effect = ScrollEffect(position: point, isPositive: isPositive, isVertical: isVertical, magnitude: magnitude)
         scrollEffects.append(effect)
         Task {
             try? await Task.sleep(for: .seconds(0.65 * animationSpeed))
             scrollEffects.removeAll { $0.id == effect.id }
+        }
+    }
+
+    /// 휠 클릭 (button 2) — 회전 파동 효과. 0.7초 후 자동 제거.
+    func addMiddleClickEffect(at point: CGPoint, animationSpeed: Double) {
+        let effect = MiddleClickEffect(position: point)
+        middleClickEffects.append(effect)
+        Task {
+            try? await Task.sleep(for: .seconds(0.7 * animationSpeed))
+            middleClickEffects.removeAll { $0.id == effect.id }
         }
     }
 

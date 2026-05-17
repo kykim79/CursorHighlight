@@ -396,17 +396,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.effects.addClickEffect(at: pos, isRight: true, animationSpeed: self.settings.animationSpeed.multiplier)
                 self.runtime.triggerClickPulse()
             }
+            monitor?.onMiddleClick = { [weak self] _ in
+                guard let self else { return }
+                self.lastMoveTime = Date()
+                self.runtime.isCursorVisible = true
+                let pos = self.runtime.cursorPosition
+                self.effects.addMiddleClickEffect(at: pos, animationSpeed: self.settings.animationSpeed.multiplier)
+                self.runtime.triggerClickPulse()
+            }
             monitor?.onShake = { [weak self] _ in
                 guard let self else { return }
                 self.lastMoveTime = Date()
                 self.runtime.isCursorVisible = true
                 self.effects.triggerShake(at: self.runtime.cursorPosition, animationSpeed: self.settings.animationSpeed.multiplier)
             }
-            monitor?.onScroll = { [weak self] _, isPositive, isVertical in
+            monitor?.onScroll = { [weak self] _, isPositive, isVertical, magnitude in
                 guard let self else { return }
                 self.lastMoveTime = Date()
                 self.runtime.isCursorVisible = true
-                self.effects.addScrollEffect(at: self.runtime.cursorPosition, isPositive: isPositive, isVertical: isVertical, animationSpeed: self.settings.animationSpeed.multiplier)
+                self.effects.addScrollEffect(at: self.runtime.cursorPosition, isPositive: isPositive, isVertical: isVertical, magnitude: magnitude, animationSpeed: self.settings.animationSpeed.multiplier)
             }
             monitor?.onDragStart = { [weak self] cgPos in
                 guard let self else { return }

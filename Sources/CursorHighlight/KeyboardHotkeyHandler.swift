@@ -84,6 +84,17 @@ final class KeyboardHotkeyHandler {
                 }
                 return
             }
+            // 돋보기 줌 in/out — ⌃⌥= (24, "=") / ⌃⌥- (27, "-"). 0.5 step, clamp 1.5~4.0.
+            // 돋보기 켜진 상태에서만 의미 있지만, 꺼진 상태에서 미리 조정도 허용.
+            if event.keyCode == 24 || event.keyCode == 27 {
+                let delta: Double = event.keyCode == 24 ? 0.5 : -0.5
+                DispatchQueue.main.async {
+                    let newZoom = max(1.5, min(4.0, settings.magnifierZoom + delta))
+                    settings.magnifierZoom = newZoom
+                    keystrokeOverlay.showStatusNotification(String(format: "🔍 돋보기 줌 %.1fx", newZoom))
+                }
+                return
+            }
             // ⌃⌥1~6 색상 즉시 변경
             // keyCode: 1=18, 2=19, 3=20, 4=21, 5=23, 6=22
             let colorMap: [UInt16: CursorSettings.RingColor] = [
