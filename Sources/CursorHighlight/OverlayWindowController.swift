@@ -1,9 +1,11 @@
 import AppKit
 import SwiftUI
+import Combine
 
 @MainActor
 class OverlayWindowController {
     private var window: NSWindow?
+    private var screenshotModeCancellable: AnyCancellable?
 
     init(screen: NSScreen,
          settings: CursorSettings,
@@ -25,7 +27,9 @@ class OverlayWindowController {
         win.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         win.isReleasedWhenClosed = false
         win.hasShadow = false
-        win.sharingType = .none  // 돋보기 캡처에 오버레이가 포함되지 않도록
+        // sharingType: 평소 .none이라야 자체 돋보기가 자기 overlay를 다시 capture하지 않음.
+        // settings.isScreenshotMode가 ON이면 .readOnly로 풀어 외부 screencapture/OBS가 잡을 수 있게.
+        win.sharingType = settings.isScreenshotMode ? .readOnly : .none
 
         let content = OverlayContentView(
             settings: settings,
@@ -38,6 +42,10 @@ class OverlayWindowController {
         win.orderFrontRegardless()
 
         self.window = win
+
+        screenshotModeCancellable = settings.$isScreenshotMode.sink { [weak win] enabled in
+            win?.sharingType = enabled ? .readOnly : .none
+        }
     }
 
     func show() { window?.orderFrontRegardless() }

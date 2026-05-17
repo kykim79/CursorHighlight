@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- **스크린샷 모드 토글** — 메뉴바에 추가. 평소 overlay window의 `sharingType = .none` (자체 돋보기가 자기 overlay 재캡처 방지)이라 외부 `screencapture`/OBS에 잡히지 않던 제약을, 토글 ON 시 `.readOnly`로 일시 해제. 발표 자료/데모 GIF 만들 때 사용. 앱 재시작 시 자동 OFF.
+- **README 스크린샷 2장** — hero (스포트라이트 + 보라색 ring), 환경설정 모양 탭.
+
 ## [0.2.0] — 2026-05-17
 
 사용자에게 의미 있는 첫 release. 드래그 효과 5종 + 자동 모드 + 업데이트 확인 + 안정화.

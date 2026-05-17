@@ -26,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var spotlightMenuItem: NSMenuItem?
     private var magnifierMenuItem: NSMenuItem?
     private var keystrokeMenuItem: NSMenuItem?
+    private var screenshotModeMenuItem: NSMenuItem?
     private var preferencesController: PreferencesWindowController?
     private var overlays: [OverlayWindowController] = []
 
@@ -120,6 +121,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(keystroke)
         keystrokeMenuItem = keystroke
 
+        // 발표/녹화용 일시 토글 — overlay window를 외부 screencapture/OBS가 잡을 수 있게 풀어줌.
+        // 평소 .none이라 자체 돋보기가 자기 overlay 재캡처 안 함. 앱 재시작 시 자동 OFF.
+        let screenshotMode = NSMenuItem(title: "스크린샷 모드 (캡처 허용)", action: #selector(toggleScreenshotMode), keyEquivalent: "")
+        screenshotMode.target = self
+        menu.addItem(screenshotMode)
+        screenshotModeMenuItem = screenshotMode
+
         menu.addItem(.separator())
 
         let ei = NSMenuItem(title: "비활성화", action: #selector(toggleEnabled), keyEquivalent: "")
@@ -156,6 +164,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleKeystroke() {
         settings.isKeystrokeEnabled.toggle()
         keystrokeOverlay.showStatusNotification(settings.isKeystrokeEnabled ? "⌨ 키스트로크 켜짐" : "⌨ 키스트로크 꺼짐")
+    }
+
+    @objc private func toggleScreenshotMode() {
+        settings.isScreenshotMode.toggle()
+        keystrokeOverlay.showStatusNotification(settings.isScreenshotMode ? "📸 스크린샷 모드 켜짐 (외부 캡처 허용)" : "📸 스크린샷 모드 꺼짐")
     }
 
     @objc private func openPreferences() {
@@ -366,5 +379,6 @@ extension AppDelegate: NSMenuDelegate {
         spotlightMenuItem?.state = runtime.isSpotlightActive ? .on : .off
         magnifierMenuItem?.state = runtime.isMagnifierActive ? .on : .off
         keystrokeMenuItem?.state = settings.isKeystrokeEnabled ? .on : .off
+        screenshotModeMenuItem?.state = settings.isScreenshotMode ? .on : .off
     }
 }
