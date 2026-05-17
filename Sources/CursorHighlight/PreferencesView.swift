@@ -208,6 +208,7 @@ private struct BehaviorTab: View {
                 }
                 Toggle("스크롤 인디케이터", isOn: $settings.isScrollIndicatorEnabled)
                 Toggle("커서 트레일", isOn: $settings.isTrailEnabled)
+                Toggle("드래그 앵커 라인 (100pt 또는 1초 이상 드래그 시 자동 표시)", isOn: $settings.isAnchoredLineEnabled)
                 Toggle("우클릭에 링 색상 적용", isOn: $settings.rightClickUsesRingColor)
                 Toggle("녹화 앱 실행 시 자동 활성화", isOn: $settings.autoEnableOnRecording)
                 Toggle("로그인 시 자동 실행", isOn: $launchAtLogin)

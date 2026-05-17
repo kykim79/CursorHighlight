@@ -25,13 +25,44 @@ final class CursorRuntimeState: ObservableObject {
     @Published var isDragging: Bool = false
     @Published var dragAngle: Double = 0
     @Published var dragVelocity: CGFloat = 0   // pt/s, EMA smoothed (#14 Speed Glow)
+    @Published var dragOrigin: CGPoint? = nil  // 드래그 시작 위치 (Cocoa 글로벌, #17 Anchored Line)
+    @Published var anchoredLineVisible: Bool = false  // #17 — 거리/시간 임계 만족 시만 true
     @Published var glowMultiplier: Double = 1.0
+
+    // #17 — 거리/시간 임계로 자동 활성. 짧은 드래그(스크롤바 등)는 line 안 보임,
+    // 의도적 긴 드래그(영역 강조)는 자연스럽게 표시.
+    private static let anchoredLineDistanceThreshold: CGFloat = 100  // pt
+    private static let anchoredLineTimeThreshold: TimeInterval = 1.0 // seconds
+    private var anchoredLineTimer: Task<Void, Never>?
 
     // MARK: - Drag
 
-    func startDrag() {
+    func startDrag(at origin: CGPoint) {
         dragAngle = 0
+        dragOrigin = origin
+        anchoredLineVisible = false
+        // 시간 임계 — 1초 동안 드래그 계속되면 자동 fade in
+        anchoredLineTimer?.cancel()
+        anchoredLineTimer = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(Self.anchoredLineTimeThreshold))
+            guard let self, self.isDragging else { return }
+            withAnimation(.easeOut(duration: 0.3)) {
+                self.anchoredLineVisible = true
+            }
+        }
         withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { isDragging = true }
+    }
+
+    /// 거리 임계 — handleMouseMove에서 매 update 시 호출. 100pt 초과 시 즉시 fade in.
+    func checkAnchoredLineDistance(currentPos: CGPoint) {
+        guard let origin = dragOrigin, !anchoredLineVisible else { return }
+        let dx = currentPos.x - origin.x
+        let dy = currentPos.y - origin.y
+        if dx * dx + dy * dy > Self.anchoredLineDistanceThreshold * Self.anchoredLineDistanceThreshold {
+            withAnimation(.easeOut(duration: 0.3)) {
+                anchoredLineVisible = true
+            }
+        }
     }
 
     func updateDragAngle(_ newAngle: Double) {
@@ -56,6 +87,15 @@ final class CursorRuntimeState: ObservableObject {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) { isDragging = false }
         dragAngle = 0
         withAnimation(.easeOut(duration: 0.3)) { dragVelocity = 0 }
+        // anchored line fade out + timer 정리
+        anchoredLineTimer?.cancel()
+        anchoredLineTimer = nil
+        withAnimation(.easeOut(duration: 0.3)) { anchoredLineVisible = false }
+        // 0.3초 fade out 후 dragOrigin 클리어 (line fade out 시간과 일치)
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            self?.dragOrigin = nil
+        }
 
         // #15 Snap Back — 드래그 종료 순간 ring이 잠깐 expand 후 spring back.
         // 만족스러운 마이크로인터랙션 ("탁! 놓았다" 피드백). ringClickScale 재사용 (click과 겹치는

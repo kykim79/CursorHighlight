@@ -27,6 +27,17 @@ struct OverlayContentView: View {
                 TrailView(trailPoints: effects.trailPoints, screenFrame: screenFrame, color: effectiveColor)
             }
 
+            // #17 Anchored Line — settings 토글 + 거리/시간 임계 만족 시만 표시.
+            // 짧은 드래그(스크롤바)는 line 안 보임, 의도적 긴 드래그(영역 강조)에 자동 fade in.
+            if settings.isAnchoredLineEnabled, let origin = runtime.dragOrigin {
+                AnchoredLineView(
+                    origin: toLocal(origin),
+                    current: localPos,
+                    color: effectiveColor,
+                    visible: runtime.anchoredLineVisible
+                )
+            }
+
             // 커서 링
             if cursorOnScreen && runtime.isCursorVisible {
                 CursorRingView(
@@ -136,6 +147,39 @@ struct SpotlightView: View {
         }
         .animation(.none, value: position)
         .transition(.opacity)
+    }
+}
+
+// MARK: - 앵커 라인 (#17)
+
+/// 드래그 시작점에 작은 dot + 시작점→현재 위치 점선. 디자인·CAD 툴 느낌.
+/// 드래그 종료 시 0.3초 fade out (CursorRuntimeState.endDrag가 dragOrigin nil 처리).
+struct AnchoredLineView: View {
+    let origin: CGPoint
+    let current: CGPoint
+    let color: Color
+    let visible: Bool   // CursorRuntimeState.anchoredLineVisible — 거리/시간 임계 통과 시만 true
+
+    var body: some View {
+        ZStack {
+            // 점선 라인
+            Path { p in
+                p.move(to: origin)
+                p.addLine(to: current)
+            }
+            .stroke(
+                color.opacity(visible ? 0.65 : 0),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [6, 4])
+            )
+            // 시작점 dot — 작은 원 + glow
+            Circle()
+                .fill(color.opacity(visible ? 0.85 : 0))
+                .frame(width: 8, height: 8)
+                .shadow(color: color.opacity(visible ? 0.6 : 0), radius: 4)
+                .position(origin)
+        }
+        .animation(.easeOut(duration: 0.3), value: visible)
+        .allowsHitTesting(false)
     }
 }
 

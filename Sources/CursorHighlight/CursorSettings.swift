@@ -35,6 +35,7 @@ final class CursorSettings: ObservableObject {
     @Persisted("isGlowEnabled", default: true) var isGlowEnabled: Bool
     @Persisted("isKeystrokeEnabled", default: false) var isKeystrokeEnabled: Bool
     @Persisted("isTrailEnabled", default: false) var isTrailEnabled: Bool
+    @Persisted("isAnchoredLineEnabled", default: true) var isAnchoredLineEnabled: Bool  // #17 — 자동 임계 기반, 평소 비-intrusive
 
     // customRingColor는 Color → NSColor → [Double] RGBA 변환 필요해서 @Persisted 미지원, 별도 처리
     @Published var customRingColor: Color = Color(red: 1, green: 0.5, blue: 0) {

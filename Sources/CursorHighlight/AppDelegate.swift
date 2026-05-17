@@ -211,6 +211,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // #17 Anchored Line — 드래그 중 거리 임계 체크 (시간 임계는 startDrag의 Task)
+        if runtime.isDragging {
+            runtime.checkAnchoredLineDistance(currentPos: pos)
+        }
+
         scheduleIdleAndGlow()
     }
 
@@ -274,8 +279,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self.runtime.isCursorVisible = true
                 self.effects.addScrollEffect(at: self.runtime.cursorPosition, isPositive: isPositive, isVertical: isVertical, animationSpeed: self.settings.animationSpeed.multiplier)
             }
-            monitor?.onDragStart = { [weak self] in
-                self?.runtime.startDrag()
+            monitor?.onDragStart = { [weak self] cgPos in
+                guard let self else { return }
+                // Quartz(top-left) → Cocoa(bottom-left)
+                let cocoaPos = CGPoint(x: cgPos.x, y: self.primaryScreenHeight - cgPos.y)
+                self.runtime.startDrag(at: cocoaPos)
             }
             monitor?.onDragAngle = { [weak self] angle, velocity in
                 guard let self else { return }

@@ -8,7 +8,7 @@ class MouseEventMonitor {
     var onRightClick: ((CGPoint) -> Void)?
     var onShake: ((CGPoint) -> Void)?
     var onScroll: ((CGPoint, Bool, Bool) -> Void)? // (position, isPositive, isVertical)
-    var onDragStart: (() -> Void)?
+    var onDragStart: ((CGPoint) -> Void)?  // 시작 위치 (Quartz 좌표, AppDelegate가 Cocoa로 변환)
     var onDragAngle: ((Double, CGFloat) -> Void)?  // (angle in radians, velocity in pt/s)
     var onDragEnd: (() -> Void)?
 
@@ -73,7 +73,7 @@ class MouseEventMonitor {
                         m.inDrag = true
                         m.lastDragPos = loc
                         m.lastDragTime = now
-                        DispatchQueue.main.async { m.onDragStart?() }
+                        DispatchQueue.main.async { m.onDragStart?(loc) }
                     } else {
                         let dx = loc.x - m.lastDragPos.x
                         let dy = loc.y - m.lastDragPos.y
