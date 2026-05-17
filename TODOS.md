@@ -29,12 +29,6 @@
 공통: `RingMotion` struct에 새 property + `OverlayContentView`에서 분기. `CursorSettings`에
 `@Persisted` 토글 추가. 인프라 이미 잘 잡혀 있어 새 옵션 추가는 한 항목당 ~20-40줄.
 
-### #17 Anchored Line — 시작점 ↔ 현재 위치 연결선
-- **목적**: 드래그 region 시각화. 디자인/CAD 툴 느낌. "여기서 끌고 왔다" 명시.
-- **구현**: `startDrag()`에 dragOrigin 저장. `OverlayContentView`에서 dragOrigin → cursorPosition 선
-  (실선/점선 옵션). 마우스 화면 사이 연결.
-- **난이도**: 中 (~50줄). 새 SwiftUI shape 또는 Path. `CursorRuntimeState`에 dragOrigin 추가.
-
 ### #18 Comet Tail — 드래그 잔상
 - **목적**: 빠른 드래그 시 cursor 뒤에 streak. 화면 녹화에서 가시성 큼.
 - **구현**: 기존 `TrailView` 응용 — 드래그 중에만 더 굵고 짧은 trail 생성. `EffectsState.updateTrail`을
@@ -161,6 +155,11 @@
 
 - ✅ **#16 Velocity Stretch** — scaleEffect를 dragVelocity에 비례화. 느린 드래그는
   거의 원형(1.05/0.95), 빠르면 max(1.5/0.7). #14의 dragVelocity 인프라 재사용.
+
+`9e5bf4b feat: 드래그 앵커 라인 (#17)`:
+
+- ✅ **#17 Anchored Line** — 드래그 시작점 dot + 점선 연결. 거리(100pt) OR 시간(1초)
+  임계로 자동 fade in (짧은 드래그는 비표시). `isAnchoredLineEnabled` 토글로 ON/OFF.
 
 `d772fec ci: GitHub Actions release workflow + Homebrew tap 자동 배포` 외 다수:
 
