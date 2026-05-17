@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-05-17
+
+### Fixed
+
+- **"지금 업데이트" 스크립트의 zsh 호환** — `status=$?`가 zsh에서 read-only built-in 충돌로 실패하던 문제. `if cmd; then ... else ... fi` 직접 구조로 단순화 — 변수 없이 exit 분기. "Enter를 눌러 닫기" 프롬프트도 정상 표시.
+
 ## [0.2.2] — 2026-05-17
 
 ### Added

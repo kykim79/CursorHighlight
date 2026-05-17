@@ -444,19 +444,19 @@ private struct InfoTab: View {
     /// 사용자 zsh 환경(PATH, brew 위치)을 그대로 받아 Apple Silicon/Intel 모두 동작.
     private func runHomebrewUpgrade() {
         let scriptPath = NSTemporaryDirectory() + "cursorhighlight-upgrade.sh"
+        // zsh에서 $status는 read-only built-in이라 직접 if 구조로 — 별도 변수 회피.
         let script = """
         #!/bin/zsh
         echo "▶ CursorHighlight 업데이트"
         echo "  명령: brew upgrade --cask kykim79/tap/cursorhighlight"
         echo
-        brew upgrade --cask kykim79/tap/cursorhighlight
-        status=$?
-        echo
-        if [ $status -eq 0 ]; then
+        if brew upgrade --cask kykim79/tap/cursorhighlight; then
+            echo
             echo "✓ 업데이트 완료. CursorHighlight를 종료 후 다시 실행하세요."
             echo "  pkill -x CursorHighlight && open -a CursorHighlight"
         else
-            echo "✗ 업데이트 실패 (exit $status). 위 출력을 확인하세요."
+            echo
+            echo "✗ 업데이트 실패. 위 출력을 확인하세요."
         fi
         echo
         read "?[Enter를 눌러 이 창을 닫기] "
