@@ -39,20 +39,34 @@ macOS 메뉴바 앱. 마우스 커서를 시각적으로 강조해 화면 녹화
 
 ## 사용자 설치
 
+### Homebrew (추천)
+
+```bash
+brew install --cask kykim79/tap/cursorhighlight
+```
+
+Homebrew가 다운로드 시 quarantine flag를 자동으로 제거해주므로 Gatekeeper 우회 절차 없이 바로 동작. 업데이트도 `brew upgrade --cask cursorhighlight` 한 줄.
+
+### 수동 설치
+
 [Releases](https://github.com/kykim79/CursorHighlight/releases)에서 `CursorHighlight.zip` 다운로드 후:
 
 1. 압축 해제 → `CursorHighlight.app`을 `/Applications`로 이동
 2. **첫 실행**: Finder에서 우클릭 → 열기 → "열기" 확인 (Gatekeeper 우회, 한 번만)
-3. 시스템 설정 → 개인정보 보호 및 보안에서 권한 허용:
-   - **손쉬운 사용** (필수): 마우스/키보드 이벤트 캡처
-   - **입력 모니터링** (필수): 단축키 감지
-   - **화면 녹화** (선택): 돋보기 사용 시
-4. 권한 부여 후 앱 재시작 → 메뉴바에 `cursorarrow.rays` 아이콘 표시되면 정상
 
 우클릭→열기도 안 되면:
 ```bash
 xattr -dr com.apple.quarantine /Applications/CursorHighlight.app
 ```
+
+### 권한 부여 (설치 방식과 무관 — 공통)
+
+시스템 설정 → 개인정보 보호 및 보안에서:
+- **손쉬운 사용** (필수): 마우스/키보드 이벤트 캡처
+- **입력 모니터링** (필수): 단축키 감지
+- **화면 녹화** (선택): 돋보기 사용 시
+
+권한 부여 후 앱 재시작 → 메뉴바에 `cursorarrow.rays` 아이콘 표시되면 정상.
 
 ## 개발 환경 구축
 

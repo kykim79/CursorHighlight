@@ -1,0 +1,164 @@
+name: Release
+
+# v*.* 또는 v*.*.* 태그 push 시 트리거.
+#   git tag v0.1.0 && git push --tags
+#
+# 동작:
+#   1. macOS runner에서 xcodegen + xcodebuild Release 빌드 (ad-hoc 코드 사이닝)
+#   2. CursorHighlight.app을 ditto로 .zip 압축 (HFS+ metadata 보존)
+#   3. SHA256 계산
+#   4. GitHub Releases에 .zip 자동 업로드
+#   5. kykim79/homebrew-tap repo의 Casks/cursorhighlight.rb에 version + sha256 자동 commit
+#
+# 요구:
+#   - kykim79/homebrew-tap repo가 미리 존재
+#   - secret HOMEBREW_TAP_TOKEN: tap repo Contents read/write 권한이 있는 PAT
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*"
+
+permissions:
+  contents: write   # GitHub Release 생성용
+
+jobs:
+  release:
+    runs-on: macos-15  # 최신 Xcode 포함 (macOS 26.x SDK 필요)
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          # refs/tags/v0.1.0 → 0.1.0
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION"
+
+      - name: Select Xcode
+        run: |
+          # 가능한 한 최신 Xcode 선택 (macos-15 runner 기본 Xcode 16.x 이상)
+          sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen
+
+      - name: Build Release
+        env:
+          MARKETING_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # MARKETING_VERSION을 CFBundleShortVersionString으로 주입
+          # CURRENT_PROJECT_VERSION는 build 번호 (GitHub run number 사용)
+          xcodebuild \
+            -project CursorHighlight.xcodeproj \
+            -scheme CursorHighlight \
+            -configuration Release \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="${GITHUB_RUN_NUMBER}" \
+            CODE_SIGN_IDENTITY="-" \
+            build
+
+      - name: Locate built .app
+        id: app
+        run: |
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/CursorHighlight-*/Build/Products/Release -name "CursorHighlight.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::CursorHighlight.app not found"; exit 1
+          fi
+          echo "path=$APP_PATH" >> "$GITHUB_OUTPUT"
+          echo "Found app: $APP_PATH"
+
+      - name: Package .zip (ditto preserves HFS+ metadata + code signatures)
+        id: package
+        run: |
+          STAGE=$(mktemp -d)
+          ditto -c -k --keepParent --sequesterRsrc "${{ steps.app.outputs.path }}" "$STAGE/CursorHighlight.zip"
+          SHA256=$(shasum -a 256 "$STAGE/CursorHighlight.zip" | awk '{print $1}')
+          mv "$STAGE/CursorHighlight.zip" "./CursorHighlight.zip"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "zip=./CursorHighlight.zip" >> "$GITHUB_OUTPUT"
+          echo "Packaged with SHA256: $SHA256"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            "${{ steps.package.outputs.zip }}" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --notes "## CursorHighlight v${{ steps.version.outputs.version }}
+
+          ### 설치
+          \`\`\`
+          brew install --cask kykim79/tap/cursorhighlight
+          \`\`\`
+
+          ### SHA256
+          \`${{ steps.package.outputs.sha256 }}\`
+
+          ---
+          [전체 변경 사항](https://github.com/kykim79/CursorHighlight/commits/v${{ steps.version.outputs.version }})"
+
+      - name: Checkout tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: kykim79/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update cask file in tap
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SHA256: ${{ steps.package.outputs.sha256 }}
+        run: |
+          mkdir -p homebrew-tap/Casks
+          cat > homebrew-tap/Casks/cursorhighlight.rb <<EOF
+          cask "cursorhighlight" do
+            version "$VERSION"
+            sha256 "$SHA256"
+
+            url "https://github.com/kykim79/CursorHighlight/releases/download/v#{version}/CursorHighlight.zip",
+                verified: "github.com/kykim79/CursorHighlight/"
+            name "CursorHighlight"
+            desc "Menu bar app for visually highlighting the mouse cursor"
+            homepage "https://github.com/kykim79/CursorHighlight"
+
+            livecheck do
+              url :url
+              strategy :github_latest
+            end
+
+            depends_on macos: ">= :ventura"
+            depends_on arch: :arm64
+
+            app "CursorHighlight.app"
+
+            zap trash: [
+              "~/Library/Preferences/com.ktoy.CursorHighlight.plist",
+            ]
+          end
+          EOF
+
+      - name: Commit + push to tap repo
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/cursorhighlight.rb
+          if git diff --cached --quiet; then
+            echo "No cask changes to commit"
+          else
+            git commit -m "cursorhighlight: bump to $VERSION"
+            git push
+          fi
