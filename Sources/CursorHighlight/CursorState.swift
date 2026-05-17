@@ -9,14 +9,10 @@ class CursorState: ObservableObject {
     @Published var cursorPosition: CGPoint = .zero
     @Published var isCursorVisible: Bool = true
     @Published var isSpotlightActive: Bool = false
-    @Published var isKeystrokeEnabled: Bool = false {
-        didSet { UserDefaults.standard.set(isKeystrokeEnabled, forKey: "isKeystrokeEnabled") }
-    }
+    @Persisted("isKeystrokeEnabled", default: false) var isKeystrokeEnabled: Bool
     @Published var keystrokeText: String = ""
     @Published var isKeystrokeVisible: Bool = false
-    @Published var isTrailEnabled: Bool = false {
-        didSet { UserDefaults.standard.set(isTrailEnabled, forKey: "isTrailEnabled") }
-    }
+    @Persisted("isTrailEnabled", default: false) var isTrailEnabled: Bool
     @Published var isMagnifierActive: Bool = false
     @Published var magnifierImage: CGImage?
     @Published var hasScreenRecordingPermission: Bool = false
@@ -36,149 +32,42 @@ class CursorState: ObservableObject {
     @Published var trailPoints: [TrailPoint] = []
     @Published var clipboardEffects: [ClipboardEffect] = []
 
-    // MARK: - Settings (UserDefaults 저장)
-    @Published var ringColor: RingColor = .yellow {
-        didSet { UserDefaults.standard.set(ringColor.rawValue, forKey: "ringColor") }
-    }
-    @Published var ringShape: RingShape = .circle {
-        didSet { UserDefaults.standard.set(ringShape.rawValue, forKey: "ringShape") }
-    }
-    @Published var ringSize: RingSize = .medium {
-        didSet { UserDefaults.standard.set(ringSize.rawValue, forKey: "ringSize") }
-    }
-    @Published var ringOpacity: Double = 1.0 {
-        didSet { debouncedSet(ringOpacity, forKey: "ringOpacity") }
-    }
-    @Published var animationSpeed: AnimationSpeed = .normal {
-        didSet { UserDefaults.standard.set(animationSpeed.rawValue, forKey: "animationSpeed") }
-    }
+    // MARK: - Settings (UserDefaults 자동 저장 via @Persisted)
+    @Persisted("ringColor", default: RingColor.yellow) var ringColor: RingColor
+    @Persisted("ringShape", default: RingShape.circle) var ringShape: RingShape
+    @Persisted("ringSize", default: RingSize.medium) var ringSize: RingSize
+    @Persisted("ringOpacity", default: 1.0, debounce: 0.3) var ringOpacity: Double
+    @Persisted("animationSpeed", default: AnimationSpeed.normal) var animationSpeed: AnimationSpeed
+    // customRingColor는 Color → NSColor → [Double] RGBA 변환 필요해서 @Persisted 미지원, 별도 처리
     @Published var customRingColor: Color = Color(red: 1, green: 0.5, blue: 0) {
         didSet { saveCustomColor() }
     }
-    @Published var keystrokeTimeout: Double = 3.0 {
-        didSet { debouncedSet(keystrokeTimeout, forKey: "keystrokeTimeout") }
-    }
-    @Published var spotlightKeyCode: UInt16 = 1 {
-        didSet { UserDefaults.standard.set(Int(spotlightKeyCode), forKey: "spotlightKeyCode") }
-    }
-    @Published var keystrokeShortcutKeyCode: UInt16 = 40 {
-        didSet { UserDefaults.standard.set(Int(keystrokeShortcutKeyCode), forKey: "keystrokeKeyCode") }
-    }
-    @Published var spotlightRadius: CGFloat = 130 {
-        didSet { debouncedSet(Double(spotlightRadius), forKey: "spotlightRadius") }
-    }
-    @Published var idleTimeout: TimeInterval = 3.0 {
-        didSet { debouncedSet(idleTimeout, forKey: "idleTimeout") }
-    }
-    @Published var isScrollIndicatorEnabled: Bool = true {
-        didSet { UserDefaults.standard.set(isScrollIndicatorEnabled, forKey: "scrollIndicator") }
-    }
-    @Published var rightClickUsesRingColor: Bool = false {
-        didSet { UserDefaults.standard.set(rightClickUsesRingColor, forKey: "rightClickUsesRingColor") }
-    }
-    @Published var autoEnableOnRecording: Bool = false {
-        didSet { UserDefaults.standard.set(autoEnableOnRecording, forKey: "autoEnableOnRecording") }
-    }
-    @Published var magnifierZoom: Double = 2.0 {
-        didSet { debouncedSet(magnifierZoom, forKey: "magnifierZoom") }
-    }
-    @Published var magnifierSize: CGFloat = 200 {
-        didSet { debouncedSet(Double(magnifierSize), forKey: "magnifierSize") }
-    }
-    @Published var magnifierShortcutKeyCode: UInt16 = 46 {  // M key
-        didSet { UserDefaults.standard.set(Int(magnifierShortcutKeyCode), forKey: "magnifierKeyCode") }
-    }
-    @Published var borderWeight: BorderWeight = .normal {
-        didSet { UserDefaults.standard.set(borderWeight.rawValue, forKey: "borderWeight") }
-    }
-    @Published var borderStyle: BorderStyle = .solid {
-        didSet { UserDefaults.standard.set(borderStyle.rawValue, forKey: "borderStyle") }
-    }
-    @Published var isPerspectiveWarping: Bool = false {
-        didSet { UserDefaults.standard.set(isPerspectiveWarping, forKey: "perspectiveWarping") }
-    }
-    @Published var hasInnerRing: Bool = false {
-        didSet { UserDefaults.standard.set(hasInnerRing, forKey: "hasInnerRing") }
-    }
-    @Published var isRingFillEnabled: Bool = false {
-        didSet { UserDefaults.standard.set(isRingFillEnabled, forKey: "isRingFillEnabled") }
-    }
-    @Published var isGlowEnabled: Bool = true {
-        didSet { UserDefaults.standard.set(isGlowEnabled, forKey: "isGlowEnabled") }
-    }
+    @Persisted("keystrokeTimeout", default: 3.0, debounce: 0.3) var keystrokeTimeout: Double
+    @Persisted("spotlightKeyCode", default: UInt16(1)) var spotlightKeyCode: UInt16
+    @Persisted("keystrokeKeyCode", default: UInt16(40)) var keystrokeShortcutKeyCode: UInt16
+    @Persisted("spotlightRadius", default: CGFloat(130), debounce: 0.3) var spotlightRadius: CGFloat
+    @Persisted("idleTimeout", default: 3.0, debounce: 0.3) var idleTimeout: TimeInterval
+    @Persisted("scrollIndicator", default: true) var isScrollIndicatorEnabled: Bool
+    @Persisted("rightClickUsesRingColor", default: false) var rightClickUsesRingColor: Bool
+    @Persisted("autoEnableOnRecording", default: false) var autoEnableOnRecording: Bool
+    @Persisted("magnifierZoom", default: 2.0, debounce: 0.3) var magnifierZoom: Double
+    @Persisted("magnifierSize", default: CGFloat(200), debounce: 0.3) var magnifierSize: CGFloat
+    @Persisted("magnifierKeyCode", default: UInt16(46)) var magnifierShortcutKeyCode: UInt16  // M key
+    @Persisted("borderWeight", default: BorderWeight.normal) var borderWeight: BorderWeight
+    @Persisted("borderStyle", default: BorderStyle.solid) var borderStyle: BorderStyle
+    @Persisted("perspectiveWarping", default: false) var isPerspectiveWarping: Bool
+    @Persisted("hasInnerRing", default: false) var hasInnerRing: Bool
+    @Persisted("isRingFillEnabled", default: false) var isRingFillEnabled: Bool
+    @Persisted("isGlowEnabled", default: true) var isGlowEnabled: Bool
 
     private var keystrokeHideTask: Task<Void, Never>?
 
-    // 슬라이더 드래그 중 매 60Hz UserDefaults set 호출 회피 (lock + KVO 비용)
-    private var pendingDefaults: [String: Any] = [:]
-    private var defaultsSaveTask: DispatchWorkItem?
-
-    private func debouncedSet(_ value: Any, forKey key: String) {
-        pendingDefaults[key] = value
-        defaultsSaveTask?.cancel()
-        let task = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            for (k, v) in self.pendingDefaults {
-                UserDefaults.standard.set(v, forKey: k)
-            }
-            self.pendingDefaults.removeAll()
-        }
-        defaultsSaveTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: task)
-    }
-
     // MARK: - Init
+    // @Persisted가 모든 설정을 자동 로드한다. customRingColor만 Color→RGBA 변환이 필요해 수동 로드.
     init() {
-        if let raw = UserDefaults.standard.string(forKey: "ringColor"),
-           let c = RingColor(rawValue: raw) { ringColor = c }
-        if let raw = UserDefaults.standard.string(forKey: "ringShape"),
-           let s = RingShape(rawValue: raw) { ringShape = s }
-        if let raw = UserDefaults.standard.string(forKey: "ringSize"),
-           let s = RingSize(rawValue: raw) { ringSize = s }
-        let ro = UserDefaults.standard.double(forKey: "ringOpacity")
-        if ro > 0 { ringOpacity = ro }
-        if let raw = UserDefaults.standard.string(forKey: "animationSpeed"),
-           let s = AnimationSpeed(rawValue: raw) { animationSpeed = s }
         if let rgba = UserDefaults.standard.array(forKey: "customRingColor") as? [Double], rgba.count >= 3 {
             customRingColor = Color(red: rgba[0], green: rgba[1], blue: rgba[2],
                                     opacity: rgba.count > 3 ? rgba[3] : 1.0)
-        }
-        let t = UserDefaults.standard.double(forKey: "keystrokeTimeout")
-        if t > 0 { keystrokeTimeout = t }
-        let sk = UserDefaults.standard.integer(forKey: "spotlightKeyCode")
-        if sk > 0 { spotlightKeyCode = UInt16(sk) }
-        let kk = UserDefaults.standard.integer(forKey: "keystrokeKeyCode")
-        if kk > 0 { keystrokeShortcutKeyCode = UInt16(kk) }
-        let sr = UserDefaults.standard.double(forKey: "spotlightRadius")
-        if sr > 0 { spotlightRadius = CGFloat(sr) }
-        let it = UserDefaults.standard.double(forKey: "idleTimeout")
-        if it > 0 { idleTimeout = it }
-        if UserDefaults.standard.object(forKey: "scrollIndicator") != nil {
-            isScrollIndicatorEnabled = UserDefaults.standard.bool(forKey: "scrollIndicator")
-        }
-        rightClickUsesRingColor = UserDefaults.standard.bool(forKey: "rightClickUsesRingColor")
-        autoEnableOnRecording = UserDefaults.standard.bool(forKey: "autoEnableOnRecording")
-        let mz = UserDefaults.standard.double(forKey: "magnifierZoom")
-        if mz > 0 { magnifierZoom = mz }
-        let ms = UserDefaults.standard.double(forKey: "magnifierSize")
-        if ms > 0 { magnifierSize = CGFloat(ms) }
-        let mk = UserDefaults.standard.integer(forKey: "magnifierKeyCode")
-        if mk > 0 { magnifierShortcutKeyCode = UInt16(mk) }
-        if let raw = UserDefaults.standard.string(forKey: "borderWeight"),
-           let w = BorderWeight(rawValue: raw) { borderWeight = w }
-        if let raw = UserDefaults.standard.string(forKey: "borderStyle"),
-           let s = BorderStyle(rawValue: raw) { borderStyle = s }
-        isPerspectiveWarping = UserDefaults.standard.bool(forKey: "perspectiveWarping")
-        hasInnerRing = UserDefaults.standard.bool(forKey: "hasInnerRing")
-        isRingFillEnabled = UserDefaults.standard.bool(forKey: "isRingFillEnabled")
-        if UserDefaults.standard.object(forKey: "isGlowEnabled") != nil {
-            isGlowEnabled = UserDefaults.standard.bool(forKey: "isGlowEnabled")
-        }
-        if UserDefaults.standard.object(forKey: "isKeystrokeEnabled") != nil {
-            isKeystrokeEnabled = UserDefaults.standard.bool(forKey: "isKeystrokeEnabled")
-        }
-        if UserDefaults.standard.object(forKey: "isTrailEnabled") != nil {
-            isTrailEnabled = UserDefaults.standard.bool(forKey: "isTrailEnabled")
         }
     }
 
