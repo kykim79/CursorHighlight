@@ -452,8 +452,11 @@ private struct InfoTab: View {
         echo
         if brew upgrade --cask kykim79/tap/cursorhighlight; then
             echo
-            echo "✓ 업데이트 완료. CursorHighlight를 종료 후 다시 실행하세요."
-            echo "  pkill -x CursorHighlight && open -a CursorHighlight"
+            echo "✓ 업데이트 완료. CursorHighlight를 재시작합니다..."
+            pkill -x CursorHighlight 2>/dev/null
+            sleep 0.5
+            open -a CursorHighlight
+            echo "  재시작됨. 새 버전이 메뉴바에 표시됩니다."
         else
             echo
             echo "✗ 업데이트 실패. 위 출력을 확인하세요."

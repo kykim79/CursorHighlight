@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.4] — 2026-05-17
+
+### Changed
+
+- **"지금 업데이트" 자동 재시작** — brew upgrade 성공 후 `pkill -x CursorHighlight && open -a CursorHighlight`를 안내만 출력하던 것을 자동 실행으로 변경. 사용자가 별도 액션 없이 새 버전이 메뉴바에 바로 표시.
+
 ## [0.2.3] — 2026-05-17
 
 ### Fixed
