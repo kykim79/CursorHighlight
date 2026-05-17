@@ -388,7 +388,9 @@ private struct InfoTab: View {
                     }
                     .disabled(checking)
                     if newerVersion != nil {
-                        Button("Release 페이지 열기") {
+                        Button("지금 업데이트") { runHomebrewUpgrade() }
+                            .buttonStyle(.borderedProminent)
+                        Button("Release 페이지") {
                             if let url = URL(string: "https://github.com/kykim79/CursorHighlight/releases/latest") {
                                 NSWorkspace.shared.open(url)
                             }
@@ -396,8 +398,8 @@ private struct InfoTab: View {
                     }
                 }
                 if newerVersion != nil {
-                    Text("Homebrew 사용 중이면: `brew upgrade --cask kykim79/tap/cursorhighlight`")
-                        .font(.caption2).foregroundColor(.secondary).textSelection(.enabled)
+                    Text("「지금 업데이트」는 Terminal에서 `brew upgrade --cask kykim79/tap/cursorhighlight`를 실행합니다. Homebrew 미사용 시 Release 페이지에서 zip 다운로드.")
+                        .font(.caption2).foregroundColor(.secondary)
                 }
             }
         }
@@ -434,6 +436,45 @@ private struct InfoTab: View {
             }
         } catch {
             updateMessage = "확인 실패: \(error.localizedDescription)"
+        }
+    }
+
+    /// "지금 업데이트" 버튼 — 임시 shell script 만든 후 Terminal.app으로 명시적으로 열어 실행.
+    /// `/usr/bin/open -a Terminal` 사용 — .sh default handler가 다른 앱(VS Code 등)으로 바뀌어도 안정.
+    /// 사용자 zsh 환경(PATH, brew 위치)을 그대로 받아 Apple Silicon/Intel 모두 동작.
+    private func runHomebrewUpgrade() {
+        let scriptPath = NSTemporaryDirectory() + "cursorhighlight-upgrade.sh"
+        let script = """
+        #!/bin/zsh
+        echo "▶ CursorHighlight 업데이트"
+        echo "  명령: brew upgrade --cask kykim79/tap/cursorhighlight"
+        echo
+        brew upgrade --cask kykim79/tap/cursorhighlight
+        status=$?
+        echo
+        if [ $status -eq 0 ]; then
+            echo "✓ 업데이트 완료. CursorHighlight를 종료 후 다시 실행하세요."
+            echo "  pkill -x CursorHighlight && open -a CursorHighlight"
+        else
+            echo "✗ 업데이트 실패 (exit $status). 위 출력을 확인하세요."
+        fi
+        echo
+        read "?[Enter를 눌러 이 창을 닫기] "
+        """
+        do {
+            try script.write(toFile: scriptPath, atomically: true, encoding: .utf8)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptPath)
+        } catch {
+            updateMessage = "스크립트 생성 실패: \(error.localizedDescription)"
+            return
+        }
+        let proc = Process()
+        proc.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        proc.arguments = ["-a", "Terminal", scriptPath]
+        do {
+            try proc.run()
+        } catch {
+            updateMessage = "Terminal 실행 실패: \(error.localizedDescription)"
         }
     }
 }

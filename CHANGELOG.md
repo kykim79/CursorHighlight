@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-05-17
+
+### Added
+
+- **"지금 업데이트" 버튼** — 환경설정 > 정보 > 업데이트 섹션. 새 버전 감지 시 표시. 클릭하면 임시 shell script 생성 후 Terminal.app으로 자동 실행 (`brew upgrade --cask kykim79/tap/cursorhighlight`). 사용자가 명령어 복사·붙여넣기 안 해도 됨. Homebrew 미설치 사용자는 기존 「Release 페이지」 버튼으로 zip 직접 다운로드.
+
 ## [0.2.1] — 2026-05-17
 
 ### Added
