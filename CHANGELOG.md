@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-05-26
+
+### Added
+
+- **트랙패드 시스템 제스처 효과** (실험적, 기본 OFF) — 4·5손가락 핀치(Launchpad / Show Desktop), 3·4손가락 위·아래 스와이프(Mission Control / App Exposé), 3·4손가락 좌·우 스와이프(Space 전환)에 시각 피드백. 환경설정 → 동작 → 기타 → "트랙패드 제스처 효과"에서 켬.
+
+### Internal
+
+- macOS는 멀티터치 시스템 제스처를 컴포지터 레벨에서 처리해 `NSEvent`/`CGEventTap` 같은 공식 API로 안 보임. 비공식 `MultitouchSupport.framework`를 `dlopen`해서 raw 터치 frame을 직접 읽음 (BetterTouchTool/MiddleClick 등이 쓰는 이 분야 표준 우회로). macOS 업데이트로 깨질 수 있어 `isAvailable` 가드로 graceful no-op 처리. 토글 OFF 시 service 시작 자체 안 함 → CPU 0.
+- `TrackpadGestureClassifier`를 순수 함수로 분리해 18개 단위 테스트로 검증 — swipe threshold 0.08(정규화), pinch threshold 0.05, 일관성 검사 tolerance 0.02. 수평 swipe는 시스템 Space slide 애니메이션과 시각 경쟁 회피 위해 0.2초 지연 fade-in.
+
 ## [0.4.2] — 2026-05-24
 
 ### Fixed
