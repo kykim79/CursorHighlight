@@ -1,241 +1,718 @@
 {
-  "sourceLanguage" : "ko",
-  "version" : "1.0",
-  "strings" : {
-    "환경설정..." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Preferences..." }
+  "sourceLanguage": "ko",
+  "version": "1.0",
+  "strings": {
+    "환경설정...": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preferences..."
+          }
         }
       }
     },
-    "스포트라이트  ⌃⌥S" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Spotlight  ⌃⌥S" }
+    "스포트라이트  ⌃⌥S": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight  ⌃⌥S"
+          }
         }
       }
     },
-    "돋보기  ⌃⌥M" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Magnifier  ⌃⌥M" }
+    "돋보기  ⌃⌥M": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magnifier  ⌃⌥M"
+          }
         }
       }
     },
-    "키스트로크 표시  ⌃⌥K" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Show Keystrokes  ⌃⌥K" }
+    "키스트로크 표시  ⌃⌥K": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Keystrokes  ⌃⌥K"
+          }
         }
       }
     },
-    "스크린샷 모드 (캡처 허용)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Screenshot Mode (allow capture)" }
+    "스크린샷 모드 (캡처 허용)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screenshot Mode (allow capture)"
+          }
         }
       }
     },
-    "비활성화" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Disable" }
+    "비활성화": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable"
+          }
         }
       }
     },
-    "✓ 활성화" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "✓ Enable" }
+    "✓ 활성화": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ Enable"
+          }
         }
       }
     },
-    "종료" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Quit" }
+    "종료": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit"
+          }
         }
       }
     },
-    "권한 일부 재부여 필요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Permissions Need Regranting" }
+    "권한 일부 재부여 필요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissions Need Regranting"
+          }
         }
       }
     },
-    "시스템 설정 열기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Open System Settings" }
+    "시스템 설정 열기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
         }
       }
     },
-    "모든 패널 열기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Open All Panels" }
+    "모든 패널 열기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open All Panels"
+          }
         }
       }
     },
-    "나중에" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Later" }
+    "나중에": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Later"
+          }
         }
       }
     },
-    "손쉬운 사용" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Accessibility" }
+    "손쉬운 사용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessibility"
+          }
         }
       }
     },
-    "화면 녹화" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Screen Recording" }
+    "화면 녹화": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Recording"
+          }
         }
       }
     },
-    "입력 모니터링" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Input Monitoring" }
+    "입력 모니터링": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Input Monitoring"
+          }
         }
       }
     },
-    "입력 보내기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "Send Input" }
+    "입력 보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send Input"
+          }
         }
       }
     },
-    "permission_alert_body" : {
-      "comment" : "Body of the launch-time alert listing missing permissions and how to regrant them.",
-      "localizations" : {
-        "ko" : {
-          "stringUnit" : { "state" : "translated", "value" : "CursorHighlight의 다음 권한이 부여되지 않았습니다:\n\n%@\n\n① 「시스템 설정 열기」 클릭\n② 목록에서 CursorHighlight 항목 클릭 후 하단 「-」 버튼으로 제거\n    (이미 토글 ON 상태인데 동작 안 하면 cdhash 변경으로 stuck. 제거 후 재부여만 동작.)\n③ CursorHighlight 다시 실행 → 권한 prompt에 「허용」\n\n앱 이름은 클립보드에 복사돼 있어 시스템 설정 검색창에 ⌘V로 바로 붙여넣을 수 있습니다." }
+    "permission_alert_body": {
+      "comment": "Body of the launch-time alert listing missing permissions and how to regrant them.",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CursorHighlight의 다음 권한이 부여되지 않았습니다:\n\n%@\n\n① 「시스템 설정 열기」 클릭\n② 목록에서 CursorHighlight 항목 클릭 후 하단 「-」 버튼으로 제거\n    (이미 토글 ON 상태인데 동작 안 하면 cdhash 변경으로 stuck. 제거 후 재부여만 동작.)\n③ CursorHighlight 다시 실행 → 권한 prompt에 「허용」\n\n앱 이름은 클립보드에 복사돼 있어 시스템 설정 검색창에 ⌘V로 바로 붙여넣을 수 있습니다."
+          }
         },
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "CursorHighlight does not have these permissions:\n\n%@\n\n① Click \"Open System Settings\"\n② Find CursorHighlight in the list, click it, then the \"-\" button below\n    (Toggling ON does not work after a cdhash change — only removal + regranting does.)\n③ Relaunch CursorHighlight → click \"Allow\" in the permission prompt\n\nThe app name is already copied to your clipboard — paste with ⌘V into System Settings search." }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CursorHighlight does not have these permissions:\n\n%@\n\n① Click \"Open System Settings\"\n② Find CursorHighlight in the list, click it, then the \"-\" button below\n    (Toggling ON does not work after a cdhash change — only removal + regranting does.)\n③ Relaunch CursorHighlight → click \"Allow\" in the permission prompt\n\nThe app name is already copied to your clipboard — paste with ⌘V into System Settings search."
+          }
         }
       }
     },
-    "🔦 스포트라이트 켜짐" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "🔦 Spotlight on" }
+    "🔦 스포트라이트 켜짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🔦 Spotlight on"
+          }
         }
       }
     },
-    "🔦 스포트라이트 꺼짐" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "🔦 Spotlight off" }
+    "🔦 스포트라이트 꺼짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🔦 Spotlight off"
+          }
         }
       }
     },
-    "⌨ 키스트로크 켜짐" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "⌨ Keystrokes on" }
+    "⌨ 키스트로크 켜짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌨ Keystrokes on"
+          }
         }
       }
     },
-    "⌨ 키스트로크 꺼짐" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "⌨ Keystrokes off" }
+    "⌨ 키스트로크 꺼짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌨ Keystrokes off"
+          }
         }
       }
     },
-    "📸 스크린샷 모드 켜짐 (외부 캡처 허용)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "📸 Screenshot mode on (external capture allowed)" }
+    "📸 스크린샷 모드 켜짐 (외부 캡처 허용)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "📸 Screenshot mode on (external capture allowed)"
+          }
         }
       }
     },
-    "📸 스크린샷 모드 꺼짐" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "📸 Screenshot mode off" }
+    "📸 스크린샷 모드 꺼짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "📸 Screenshot mode off"
+          }
         }
       }
     },
-    "magnifier_zoom_toast" : {
-      "comment" : "Zoom level toast — %.1f is the zoom multiplier",
-      "localizations" : {
-        "ko" : {
-          "stringUnit" : { "state" : "translated", "value" : "🔍 돋보기 줌 %.1fx" }
+    "magnifier_zoom_toast": {
+      "comment": "Zoom level toast — %.1f is the zoom multiplier",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🔍 돋보기 줌 %.1fx"
+          }
         },
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "🔍 Magnifier zoom %.1fx" }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🔍 Magnifier zoom %.1fx"
+          }
         }
       }
     },
-    "ring_color_toast" : {
-      "comment" : "Ring color cycle toast — %@ is the localized color name",
-      "localizations" : {
-        "ko" : {
-          "stringUnit" : { "state" : "translated", "value" : "🎨 %@" }
+    "ring_color_toast": {
+      "comment": "Ring color cycle toast — %@ is the localized color name",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🎨 %@"
+          }
         },
-        "en" : {
-          "stringUnit" : { "state" : "translated", "value" : "🎨 %@" }
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "🎨 %@"
+          }
         }
       }
     },
-
-    "모양" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Appearance" } } } },
-    "동작" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Behavior" } } } },
-    "단축키" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Shortcuts" } } } },
-    "정보" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Info" } } } },
-
-    "커서 링 색상" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Cursor Ring Color" } } } },
-    "링 모양" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Ring Shape" } } } },
-    "링 크기" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Ring Size" } } } },
-    "링 투명도" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Ring Opacity" } } } },
-    "테두리 두께" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Border Weight" } } } },
-    "테두리 스타일" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Border Style" } } } },
-    "애니메이션 속도" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Animation Speed" } } } },
-    "스포트라이트 반경" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Spotlight Radius" } } } },
-    "키스트로크" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Keystrokes" } } } },
-    "기타" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } } } },
-    "투명도" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Opacity" } } } },
-    "반경" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Radius" } } } },
-    "표시 시간" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Display Duration" } } } },
-    "커서 숨김 대기" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Idle Hide Delay" } } } },
-    "커스텀 색상" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Custom Color" } } } },
-    "이중 링 (안쪽 반투명 선)" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Inner Ring (translucent line inside)" } } } },
-    "링 채우기 (반투명 도넛)" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Ring Fill (translucent donut)" } } } },
-    "글로우 효과" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Glow Effect" } } } },
-    "원근 왜곡 (Perspective Warping)" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Perspective Warping" } } } },
-
-    "스크롤 인디케이터" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Scroll Indicator" } } } },
-    "커서 트레일" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Cursor Trail" } } } },
-    "드래그 앵커 라인 (100pt 또는 1초 이상 드래그 시 자동 표시)" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag Anchor Line (auto-show after 100pt or 1s drag)" } } } },
-    "드래그 컴맷 테일 (드래그 중 cursor 뒤 streak)" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag Comet Tail (streak behind cursor while dragging)" } } } },
-    "드래그 각도 라벨 (도면·일러스트레이션용)" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag Angle Label (for drafting/illustration)" } } } },
-    "우클릭에 링 색상 적용" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Apply ring color to right-click" } } } },
-    "녹화·발표·회의 앱 활성화 시 자동 활성화" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-enable when recording/presentation/meeting apps activate" } } } },
-    "로그인 시 자동 실행" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Launch at login" } } } },
-
-    "돋보기 설정" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Magnifier Settings" } } } },
-    "배율" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Zoom" } } } },
-    "렌즈 크기" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Lens Size" } } } },
-
-    "앱 정보" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "App Info" } } } },
-    "버전" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Version" } } } },
-    "개발자" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Developer" } } } },
-    "최소 요구 사항" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Minimum Requirement" } } } },
-    "업데이트" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Update" } } } },
-    "업데이트 확인" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Check for Updates" } } } },
-    "확인 중..." : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Checking..." } } } },
-    "지금 업데이트" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Update Now" } } } },
-    "Release 페이지" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Release Page" } } } }
+    "모양": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appearance"
+          }
+        }
+      }
+    },
+    "동작": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behavior"
+          }
+        }
+      }
+    },
+    "단축키": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts"
+          }
+        }
+      }
+    },
+    "정보": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Info"
+          }
+        }
+      }
+    },
+    "커서 링 색상": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cursor Ring Color"
+          }
+        }
+      }
+    },
+    "링 모양": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ring Shape"
+          }
+        }
+      }
+    },
+    "링 크기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ring Size"
+          }
+        }
+      }
+    },
+    "링 투명도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ring Opacity"
+          }
+        }
+      }
+    },
+    "테두리 두께": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Border Weight"
+          }
+        }
+      }
+    },
+    "테두리 스타일": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Border Style"
+          }
+        }
+      }
+    },
+    "애니메이션 속도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Animation Speed"
+          }
+        }
+      }
+    },
+    "스포트라이트 반경": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight Radius"
+          }
+        }
+      }
+    },
+    "키스트로크": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keystrokes"
+          }
+        }
+      }
+    },
+    "기타": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        }
+      }
+    },
+    "투명도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opacity"
+          }
+        }
+      }
+    },
+    "반경": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Radius"
+          }
+        }
+      }
+    },
+    "표시 시간": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display Duration"
+          }
+        }
+      }
+    },
+    "커서 숨김 대기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idle Hide Delay"
+          }
+        }
+      }
+    },
+    "커스텀 색상": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom Color"
+          }
+        }
+      }
+    },
+    "이중 링 (안쪽 반투명 선)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inner Ring (translucent line inside)"
+          }
+        }
+      }
+    },
+    "링 채우기 (반투명 도넛)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ring Fill (translucent donut)"
+          }
+        }
+      }
+    },
+    "글로우 효과": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glow Effect"
+          }
+        }
+      }
+    },
+    "원근 왜곡 (Perspective Warping)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perspective Warping"
+          }
+        }
+      }
+    },
+    "스크롤 인디케이터": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scroll Indicator"
+          }
+        }
+      }
+    },
+    "커서 트레일": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cursor Trail"
+          }
+        }
+      }
+    },
+    "드래그 앵커 라인 (100pt 또는 1초 이상 드래그 시 자동 표시)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag Anchor Line (auto-show after 100pt or 1s drag)"
+          }
+        }
+      }
+    },
+    "드래그 컴맷 테일 (드래그 중 cursor 뒤 streak)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag Comet Tail (streak behind cursor while dragging)"
+          }
+        }
+      }
+    },
+    "드래그 각도 라벨 (도면·일러스트레이션용)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag Angle Label (for drafting/illustration)"
+          }
+        }
+      }
+    },
+    "우클릭에 링 색상 적용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apply ring color to right-click"
+          }
+        }
+      }
+    },
+    "녹화·발표·회의 앱 활성화 시 자동 활성화": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auto-enable when recording/presentation/meeting apps activate"
+          }
+        }
+      }
+    },
+    "로그인 시 자동 실행": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch at login"
+          }
+        }
+      }
+    },
+    "돋보기 설정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Magnifier Settings"
+          }
+        }
+      }
+    },
+    "배율": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zoom"
+          }
+        }
+      }
+    },
+    "렌즈 크기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lens Size"
+          }
+        }
+      }
+    },
+    "앱 정보": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App Info"
+          }
+        }
+      }
+    },
+    "버전": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "개발자": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Developer"
+          }
+        }
+      }
+    },
+    "최소 요구 사항": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minimum Requirement"
+          }
+        }
+      }
+    },
+    "업데이트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update"
+          }
+        }
+      }
+    },
+    "업데이트 확인": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates"
+          }
+        }
+      }
+    },
+    "확인 중...": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking..."
+          }
+        }
+      }
+    },
+    "지금 업데이트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Now"
+          }
+        }
+      }
+    },
+    "Release 페이지": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release Page"
+          }
+        }
+      }
+    },
+    "트랙패드 제스처 효과 (4핀치/3·4 스와이프 — 실험적)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trackpad gesture effects (4-finger pinch / 3·4-finger swipe — experimental)"
+          }
+        }
+      }
+    }
   }
 }

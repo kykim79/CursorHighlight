@@ -208,6 +208,7 @@ private struct BehaviorTab: View {
                 Toggle("드래그 컴맷 테일 (드래그 중 cursor 뒤 streak)", isOn: $settings.isCometTailEnabled)
                 Toggle("드래그 각도 라벨 (도면·일러스트레이션용)", isOn: $settings.isDragAngleLabelEnabled)
                 Toggle("우클릭에 링 색상 적용", isOn: $settings.rightClickUsesRingColor)
+                Toggle("트랙패드 제스처 효과 (4핀치/3·4 스와이프 — 실험적)", isOn: $settings.isTrackpadGesturesEnabled)
                 Toggle("녹화·발표·회의 앱 활성화 시 자동 활성화", isOn: $settings.autoEnableOnRecording)
                 Toggle("로그인 시 자동 실행", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { v in settings.setLaunchAtLogin(v) }

@@ -114,6 +114,18 @@ struct OverlayContentView: View {
                 }
             }
 
+            // 트랙패드 시스템 제스처 (4핀치 / 3·4 swipe) — MultitouchService 감지
+            ForEach(effects.trackpadGestureEffects) { effect in
+                if screenFrame.contains(effect.position) {
+                    TrackpadGestureVisualView(
+                        position: toLocal(effect.position),
+                        gesture: effect.gesture,
+                        color: effectiveColor,
+                        speed: speed
+                    )
+                }
+            }
+
             // 돋보기
             if runtime.isMagnifierActive && cursorOnScreen {
                 MagnifierView(
@@ -839,5 +851,152 @@ struct ClipboardIndicatorView: View {
                 withAnimation(.easeOut(duration: 0.6)) { yOffset = -28 }
                 withAnimation(.easeIn(duration: 0.3).delay(0.75)) { opacity = 0 }
             }
+    }
+}
+
+// MARK: - 트랙패드 시스템 제스처 (4핀치 / 3·4손가락 swipe)
+
+/// 디스패처 — gesture 종류에 맞는 시각 뷰 선택.
+struct TrackpadGestureVisualView: View {
+    let position: CGPoint
+    let gesture: TrackpadGesture
+    let color: Color
+    let speed: Double
+
+    var body: some View {
+        switch gesture {
+        case .fourFingerPinchIn:
+            PinchVisualView(position: position, dotCount: 4, isPinchIn: true,  color: color, speed: speed)
+        case .fourFingerPinchOut:
+            PinchVisualView(position: position, dotCount: 4, isPinchIn: false, color: color, speed: speed)
+        case .fiveFingerPinchIn:
+            PinchVisualView(position: position, dotCount: 5, isPinchIn: true,  color: color, speed: speed)
+        case .fiveFingerPinchOut:
+            PinchVisualView(position: position, dotCount: 5, isPinchIn: false, color: color, speed: speed)
+        default:
+            if let dir = swipeDirection(for: gesture) {
+                SwipeVisualView(
+                    position: position,
+                    direction: dir,
+                    fingerCount: gesture.fingerCount,
+                    color: color,
+                    speed: speed
+                )
+            }
+        }
+    }
+
+    /// SwiftUI 화면 좌표 단위 벡터 — y는 위가 음수.
+    private func swipeDirection(for g: TrackpadGesture) -> CGPoint? {
+        switch g {
+        case .threeFingerSwipeUp, .fourFingerSwipeUp:       return CGPoint(x: 0,  y: -1)
+        case .threeFingerSwipeDown, .fourFingerSwipeDown:   return CGPoint(x: 0,  y: 1)
+        case .threeFingerSwipeLeft, .fourFingerSwipeLeft:   return CGPoint(x: -1, y: 0)
+        case .threeFingerSwipeRight, .fourFingerSwipeRight: return CGPoint(x: 1,  y: 0)
+        default: return nil
+        }
+    }
+}
+
+/// 4·5손가락 핀치 — N개 dot이 중심으로 수축(In=Launchpad) 또는 바깥으로 확산(Out=Show Desktop).
+/// dot 개수가 실제 손가락 수와 일치 — 4핀치는 4개, 5핀치는 5개.
+struct PinchVisualView: View {
+    let position: CGPoint
+    let dotCount: Int       // 4 또는 5
+    let isPinchIn: Bool
+    let color: Color
+    let speed: Double
+    @State private var scale: CGFloat
+    @State private var opacity: Double = 0.9
+
+    private let outerRadius: CGFloat = 42
+
+    init(position: CGPoint, dotCount: Int, isPinchIn: Bool, color: Color, speed: Double) {
+        self.position = position
+        self.dotCount = dotCount
+        self.isPinchIn = isPinchIn
+        self.color = color
+        self.speed = speed
+        _scale = State(initialValue: isPinchIn ? 1.0 : 0.1)
+    }
+
+    /// dot 개수에 따라 원주 균등 분포한 offset 계산 (SwiftUI 좌표: -y가 위).
+    /// 시작 각도는 위(12시)로 — 시각적으로 안정적.
+    private func offset(for i: Int) -> CGSize {
+        let angle = -.pi / 2 + (2 * .pi * Double(i)) / Double(dotCount)
+        return CGSize(width: cos(angle) * Double(outerRadius), height: sin(angle) * Double(outerRadius))
+    }
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<dotCount, id: \.self) { i in
+                let off = offset(for: i)
+                Circle()
+                    .fill(color.opacity(opacity))
+                    .frame(width: 11, height: 11)
+                    .offset(x: off.width * scale, y: off.height * scale)
+            }
+        }
+        .position(position)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.58 * speed)) {
+                scale = isPinchIn ? 0.1 : 1.35
+                opacity = 0
+            }
+        }
+    }
+}
+
+/// 3·4손가락 스와이프 — N개 평행 capsule이 direction으로 이동하며 페이드.
+/// 수평 swipe(=Space 전환)는 시스템 슬라이드 애니메이션과 시각 경쟁하므로 살짝 지연 시작.
+struct SwipeVisualView: View {
+    let position: CGPoint
+    let direction: CGPoint    // 단위 벡터 (SwiftUI 좌표; -y가 위)
+    let fingerCount: Int      // 3 또는 4
+    let color: Color
+    let speed: Double
+    @State private var offset: CGFloat = 0
+    @State private var opacity: Double = 0.0   // delay 동안 0, onAppear에서 fade in
+
+    private let travelDistance: CGFloat = 64
+    private let lateralSpacing: CGFloat = 15
+
+    private var isHorizontal: Bool { abs(direction.x) > abs(direction.y) }
+    /// 수평 swipe는 시스템 Space slide(~0.4초)와 시각 경쟁 → 0.2초 지연 후 시작.
+    /// 수직(Mission Control/Exposé)은 zoom 애니라 경쟁 적음 → 즉시 시작.
+    private var startDelay: Double { isHorizontal ? 0.20 : 0.0 }
+
+    var body: some View {
+        let perpX = -direction.y
+        let perpY = direction.x
+        let angle = atan2(direction.y, direction.x) + .pi / 2
+
+        ZStack {
+            ForEach(0..<fingerCount, id: \.self) { i in
+                let lateral = (CGFloat(i) - CGFloat(fingerCount - 1) / 2) * lateralSpacing
+                Capsule()
+                    .fill(color.opacity(opacity))
+                    .frame(width: 8, height: 32)
+                    .rotationEffect(.radians(Double(angle)))
+                    .offset(
+                        x: perpX * lateral + direction.x * offset,
+                        y: perpY * lateral + direction.y * offset
+                    )
+            }
+        }
+        .position(position)
+        .onAppear {
+            // 1) fade in (시스템 transition 끝날 즈음 또렷하게 등장)
+            withAnimation(.easeIn(duration: 0.12 * speed).delay(startDelay)) {
+                opacity = 1.0
+            }
+            // 2) 이동 + 페이드 아웃 (천천히, 잘 보이게)
+            withAnimation(.easeOut(duration: 0.75 * speed).delay(startDelay + 0.05)) {
+                offset = travelDistance
+            }
+            withAnimation(.easeIn(duration: 0.45 * speed).delay(startDelay + 0.45)) {
+                opacity = 0
+            }
+        }
     }
 }

@@ -16,6 +16,7 @@ final class EffectsState: ObservableObject {
     @Published var scrollEffects: [ScrollEffect] = []
     @Published var trailPoints: [TrailPoint] = []
     @Published var clipboardEffects: [ClipboardEffect] = []
+    @Published var trackpadGestureEffects: [TrackpadGestureEffect] = []
 
     // MARK: - Effect Structs
     struct ClickEffect: Identifiable {
@@ -39,6 +40,10 @@ final class EffectsState: ObservableObject {
     }
     struct ClipboardEffect: Identifiable {
         let id = UUID(); let position: CGPoint; let emoji: String
+    }
+    /// 트랙패드 시스템 제스처 (4핀치 / 3·4 swipe). MultitouchService에서 감지 → main에서 발사.
+    struct TrackpadGestureEffect: Identifiable {
+        let id = UUID(); let position: CGPoint; let gesture: TrackpadGesture
     }
 
     // MARK: - Add Effects
@@ -90,6 +95,17 @@ final class EffectsState: ObservableObject {
         Task {
             try? await Task.sleep(for: .seconds(0.7 * animationSpeed))
             middleClickEffects.removeAll { $0.id == effect.id }
+        }
+    }
+
+    /// 트랙패드 제스처 인식 시 발사. TTL 1.3초 — swipe view의 delay(0.2s) + fade-in(0.12s)
+    /// + animation(0.75s)을 모두 수용 + 약간의 마진. 시각 view가 자체 fade out 처리.
+    func addTrackpadGesture(_ gesture: TrackpadGesture, at point: CGPoint, animationSpeed: Double) {
+        let effect = TrackpadGestureEffect(position: point, gesture: gesture)
+        trackpadGestureEffects.append(effect)
+        Task {
+            try? await Task.sleep(for: .seconds(1.3 * animationSpeed))
+            trackpadGestureEffects.removeAll { $0.id == effect.id }
         }
     }
 

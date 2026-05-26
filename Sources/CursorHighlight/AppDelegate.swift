@@ -45,6 +45,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var isEnabled = true
 
+    // 트랙패드 제스처 (실험적, 비공식 API) — 토글 변화 구독.
+    private var trackpadGestureCancellable: AnyCancellable?
+
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -146,6 +149,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onMagnifierWithoutPermission: { [weak self] in self?.permissionsManager?.requestScreenRecordingPermission() }
         )
         keyboardHotkeyHandler?.start()
+
+        // 트랙패드 시스템 제스처 — 비공식 MultitouchSupport. 토글 ON일 때만 활성.
+        MultitouchService.shared.onGesture = { [weak self] gesture in
+            guard let self else { return }
+            // 토글 OFF 사이의 in-flight 콜백 안전 가드 (start/stop은 idempotent이지만
+            // stop 직전에 콜백이 enqueue됐을 수 있음).
+            guard self.settings.isTrackpadGesturesEnabled else { return }
+            self.effects.addTrackpadGesture(
+                gesture,
+                at: self.runtime.cursorPosition,
+                animationSpeed: self.settings.animationSpeed.multiplier
+            )
+        }
+        // 초기 상태 반영 + 토글 변화에 따라 start/stop.
+        if settings.isTrackpadGesturesEnabled, MultitouchService.shared.isAvailable {
+            MultitouchService.shared.start()
+        }
+        trackpadGestureCancellable = settings.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                if self.settings.isTrackpadGesturesEnabled, MultitouchService.shared.isAvailable {
+                    MultitouchService.shared.start()
+                } else {
+                    MultitouchService.shared.stop()
+                }
+            }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // 종료 시 시스템 multitouch 콜백 정리 — 안 풀면 잠재적으로 freed memory에 fire 가능.
+        MultitouchService.shared.stop()
     }
 
     // MARK: - 메뉴바
