@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+## [0.4.4] — 2026-05-27
+
+### Fixed
+
+- **트랙패드 좌·우 스와이프 효과 가시성 / 중복** — Space 전환 중 컴포지터 스냅샷에 effect가 묻혀 슬라이드 종료 후에야 보이던 문제, 연속 swipe 시 이전 화면 effect와 새 화면 effect가 겹쳐 보이던 문제를 해결. boundary(끝단)에서는 즉시 softReveal로 발사하고, 중간 화면에서는 `CGSManagedDisplayGetCurrentSpace`로 Space commit을 50ms 간격 polling해 슬라이드 종료 시점에 자연스럽게 합류시킴. 가장 최근 swipe의 firedAt만 살리는 stale 보호로 빠른 연속 swipe 시 항상 마지막 swipe의 effect만 표시.
+
+### Added
+
+- **입력 모니터링 권한 자동 등록** — 앱 실행 시 `CGRequestListenEventAccess`로 silent 등록 호출. macOS Sonoma+에서 `IOHIDRequestAccess`가 prompt를 안 띄우는 회귀가 있어 CoreGraphics 쪽 private API로 우회. 첫 실행 시 macOS 표준 prompt 한 번 뜨고 시스템 설정 → 입력 모니터링 목록에 앱이 자동 등장.
+- **권한 안내 UI 정리** — 환경설정 → 돋보기 탭의 화면 녹화 권한 배너를 작은 info 아이콘 + caption + 작은 "설정 열기" 버튼으로 축소. ad-hoc 사이닝 앱이 자동 등록되지 않는 경우 시스템 설정에서 "+" 버튼으로 직접 추가하는 가이드 추가.
+
+### Internal
+
+- Space commit 타이밍 차이(외장 ~580ms, 내장 600~1000ms+)는 OS 동작이라 polling deadline 1.6s로 양쪽 흡수. NSWorkspace의 `activeSpaceDidChangeNotification`이 내장 모니터에서 안 오는 케이스 대비해 `CGSManagedDisplayGetCurrentSpace` 디스플레이별 query로 fallback.
+
 ## [0.4.3] — 2026-05-26
 
 ### Added

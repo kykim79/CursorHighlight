@@ -29,6 +29,7 @@ targets:
         LSUIElement: true
         NSAccessibilityUsageDescription: "마우스 클릭과 키보드 입력을 감지해 커서 강조 효과를 표시합니다."
         NSScreenCaptureUsageDescription: "돋보기 기능으로 커서 주변 화면을 실시간 확대 표시합니다."
+        NSInputMonitoringUsageDescription: "전역 키보드 단축키(돋보기·스포트라이트·키스트로크 표시 토글 등)를 감지합니다."
         # MARKETING_VERSION/CURRENT_PROJECT_VERSION 빌드 설정에서 주입.
         # 로컬 빌드는 위 settings.base의 기본값(0.1.0/1), GitHub Actions는 git tag에서 추출한 값.
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -42,7 +43,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # GitHub Actions release workflow가 git tag에서 추출한 버전으로 override함.
         # 로컬 빌드 기본값 (workflow가 MARKETING_VERSION/CURRENT_PROJECT_VERSION 인자로 덮어씀).
-        MARKETING_VERSION: "0.4.3"
+        MARKETING_VERSION: "0.4.4"
         CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: NO
 

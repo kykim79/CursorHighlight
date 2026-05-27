@@ -57,8 +57,9 @@ enum TrackpadGesture: String, Equatable, CaseIterable {
 // MARK: - FingerTrace
 
 /// 한 손가락이 트랙패드에 접촉한 동안의 시작·끝 위치 (정규화 0..1).
+/// startPos는 세션 중 재앵커링(반복 swipe cooldown 해제 시) 가능하도록 var.
 struct FingerTrace: Equatable {
-    let startPos: CGPoint
+    var startPos: CGPoint
     var lastPos: CGPoint
 }
 
@@ -66,9 +67,11 @@ struct FingerTrace: Equatable {
 
 enum TrackpadGestureClassifier {
     /// 스와이프로 분류하는 평균 변위 임계 (정규화 단위; 트랙패드 폭 = 1).
-    /// 트랙패드가 가로 > 세로라 수평 swipe는 정규화 변위가 작게 잡힘 → 0.08로 낮춤
-    /// (~1cm 물리 이동에 해당). 0.12였을 땐 수평 누락 잦았음.
-    static let swipeThreshold: Double = 0.08
+    /// 트랙패드가 가로 > 세로라 수평 swipe는 정규화 변위가 작게 잡힘. macOS 자체 gesture
+    /// 인식기는 velocity 기반이라 짧고 빠른 swipe도 잡지만, 우리는 displacement만 사용
+    /// → 임계 0.05(~6mm)로 낮춰 짧은 수평 swipe도 catch. 0.02 일관성 tolerance와
+    /// 동시 3+ finger 조건이 false positive를 충분히 거름.
+    static let swipeThreshold: Double = 0.05
 
     /// 일관성 검사 tolerance — 한 손가락이 우세축에서 약간 반대로 움직여도 OK.
     /// 사람 손가락은 완벽히 평행 안 움직임 — 0.02pt(~1.5mm)는 허용.

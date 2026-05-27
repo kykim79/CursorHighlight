@@ -2,6 +2,54 @@ import AppKit
 import Combine
 import SwiftUI
 
+// private CoreGraphics API — Space 전환 polling. NSWorkspace.activeSpaceDidChangeNotification이
+// 내장 모니터에서 안 오는 케이스 backup. CGSManagedDisplayGetCurrentSpace로 디스플레이별 active
+// space를 직접 조회 (CGSCopyActiveSpaces는 macOS 26에서 제거됨).
+@_silgen_name("CGSMainConnectionID")
+private func CGSMainConnectionID() -> Int32
+@_silgen_name("CGSGetActiveSpace")
+private func CGSGetActiveSpace(_ cid: Int32) -> UInt64
+@_silgen_name("CGSManagedDisplayGetCurrentSpace")
+private func CGSManagedDisplayGetCurrentSpace(_ cid: Int32, _ displayUUID: CFString) -> UInt64
+@_silgen_name("CGSCopyManagedDisplaySpaces")
+private func CGSCopyManagedDisplaySpaces(_ cid: Int32) -> Unmanaged<CFArray>?
+
+/// 현재 모든 디스플레이의 active Space ID를 String snapshot으로 반환.
+/// 디스플레이마다 UUID로 query, 그리고 main display의 active space도 같이 잡음.
+private func currentSpacesSignature() -> String {
+    let cid = CGSMainConnectionID()
+    var parts: [String] = []
+    for screen in NSScreen.screens {
+        guard let dispID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+              let uuidRef = CGDisplayCreateUUIDFromDisplayID(dispID)?.takeRetainedValue(),
+              let uuidStr = CFUUIDCreateString(nil, uuidRef) as String? else { continue }
+        let spaceID = CGSManagedDisplayGetCurrentSpace(cid, uuidStr as CFString)
+        parts.append("\(dispID):\(spaceID)")
+    }
+    parts.append("MAIN:\(CGSGetActiveSpace(cid))")
+    return parts.joined(separator: "|")
+}
+
+/// 특정 디스플레이의 현재 Space 인덱스와 총 개수 — boundary 감지용.
+/// CGSCopyManagedDisplaySpaces dict 파싱으로 ManagedSpaceID 기반 index 계산.
+private func spaceIndexForDisplay(_ displayID: CGDirectDisplayID) -> (current: Int, total: Int)? {
+    let cid = CGSMainConnectionID()
+    guard let cf = CGSCopyManagedDisplaySpaces(cid)?.takeRetainedValue() else { return nil }
+    guard let uuidRef = CGDisplayCreateUUIDFromDisplayID(displayID)?.takeRetainedValue(),
+          let targetUUID = CFUUIDCreateString(nil, uuidRef) as String? else { return nil }
+    for item in (cf as NSArray) {
+        guard let dict = item as? [String: Any],
+              (dict["Display Identifier"] as? String) == targetUUID else { continue }
+        guard let spaces = dict["Spaces"] as? [[String: Any]],
+              let current = dict["Current Space"] as? [String: Any],
+              let currentID = (current["ManagedSpaceID"] as? NSNumber)?.int64Value else { return nil }
+        let allIDs = spaces.compactMap { ($0["ManagedSpaceID"] as? NSNumber)?.int64Value }
+        guard let idx = allIDs.firstIndex(of: currentID) else { return nil }
+        return (idx, allIDs.count)
+    }
+    return nil
+}
+
 // MARK: - AppDelegate
 //
 // 책임: 메뉴바 + 4개 상태 객체 + 4개 서비스 owning + 마우스 라우팅 + 오버레이 lifecycle.
@@ -48,6 +96,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // 트랙패드 제스처 (실험적, 비공식 API) — 토글 변화 구독.
     private var trackpadGestureCancellable: AnyCancellable?
 
+    // 가장 최근 트랙패드 swipe 발생 시점 (gesture detect 시점, fire 시점 아님).
+    // polling이 자기 firedAt < latestSwipeFiredAt이면 stale (=더 새 swipe 이미 있음) → skip.
+    // 매 swipe마다 갱신하므로 두 swipe 연속 시 newer가 살아남고 older의 polling은 skip.
+    private var latestSwipeFiredAt: Date = .distantPast
+
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -71,7 +124,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// launch 시 권한 4개 (손쉬운 사용 / 화면 녹화 / 입력 모니터링 / 입력 보내기) 체크.
+    /// launch 시 권한 3개 (손쉬운 사용 / 화면 녹화 / 입력 모니터링) 체크.
     /// TCC 권한 동기화가 launch 직후 1-2초 false negative 반환하는 경우 있어 1초 간격으로
     /// 5번 retry — 5번 모두 missing인 권한만 진짜 missing 판단. 일부라도 missing 시 NSAlert.
     /// 총 대기 약 6초.
@@ -101,9 +154,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: String(localized: "시스템 설정 열기"))
         alert.addButton(withTitle: String(localized: "나중에"))
 
-        // 사용자가 시스템 설정 검색창에서 빠르게 찾을 수 있게 클립보드에 앱 이름 복사
+        // 클립보드에 앱 경로 복사 — 시스템 설정의 「+」 버튼으로 추가 시 ⌘V로 바로 붙여넣기.
+        // (특히 ad-hoc 사이닝된 빌드에선 입력 모니터링은 자동 등재 안 돼 「+」가 유일한 길)
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString("CursorHighlight", forType: .string)
+        NSPasteboard.general.setString("/Applications/CursorHighlight.app", forType: .string)
 
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
@@ -131,6 +185,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupServices() {
         permissionsManager = PermissionsManager(runtime: runtime)
         permissionsManager?.startPolling()
+        // 시스템 화면 녹화 + 입력 모니터링 권한 목록에 우리 앱을 silent 등록 —
+        // 손쉬운 사용처럼 자동 등장. 첫 launch 시 macOS 표준 프롬프트 1회, 이후엔 캐시된 결정 사용.
+        // 사용자가 in-app "권한 요청" 버튼 거치지 않고 시스템 설정에서 직접 토글 가능.
+        permissionsManager?.registerForScreenRecordingPrompt()
+        permissionsManager?.registerForInputMonitoringPrompt()
 
         appActivationDetector = AppActivationDetector(settings: settings) { [weak self] in
             self?.handleTriggerAppActivated()
@@ -151,16 +210,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         keyboardHotkeyHandler?.start()
 
         // 트랙패드 시스템 제스처 — 비공식 MultitouchSupport. 토글 ON일 때만 활성.
+        //
+        // 수평 swipe는 IMMEDIATE 안 띄움 — boundary 케이스는 즉시 softReveal, middle 케이스는
+        // polling으로 Space 변경 commit 시점에 softReveal. 두 단계 "tail + restart" 시각 제거.
+        // 수직 swipe·핀치는 IMMEDIATE 유지 (Space 전환 아니라 compositor 차단 없음).
         MultitouchService.shared.onGesture = { [weak self] gesture in
             guard let self else { return }
-            // 토글 OFF 사이의 in-flight 콜백 안전 가드 (start/stop은 idempotent이지만
-            // stop 직전에 콜백이 enqueue됐을 수 있음).
             guard self.settings.isTrackpadGesturesEnabled else { return }
-            self.effects.addTrackpadGesture(
-                gesture,
-                at: self.runtime.cursorPosition,
-                animationSpeed: self.settings.animationSpeed.multiplier
-            )
+            let pos = self.runtime.cursorPosition
+            let speed = self.settings.animationSpeed.multiplier
+
+            // 매 horizontal swipe마다 latestSwipeFiredAt 갱신 — 이후 polling이 stale 여부 판단.
+            let swipeFiredAt = Date()
+            if Self.isHorizontalSwipe(gesture) {
+                self.latestSwipeFiredAt = swipeFiredAt
+                let boundary = self.isAtBoundaryFor(gesture: gesture, position: pos)
+                if boundary {
+                    // boundary: Space 전환 안 일어남 → 즉시 softReveal로 발사.
+                    self.effects.addTrackpadGesture(gesture, at: pos, animationSpeed: speed, softReveal: true)
+                } else {
+                    // middle: Space 전환 commit 시점에 softReveal — polling.
+                    let sigBefore = currentSpacesSignature()
+                    self.pollForMiddleSpaceChange(
+                        gesture: gesture, position: pos,
+                        sigBefore: sigBefore, firedAt: swipeFiredAt,
+                        deadline: swipeFiredAt.addingTimeInterval(1.6)
+                    )
+                }
+            } else {
+                // 수직·핀치: 즉시 발사 (Space 전환 안 일어남, latestSwipeFiredAt 관여 안 함).
+                self.effects.addTrackpadGesture(gesture, at: pos, animationSpeed: speed)
+            }
         }
         // 초기 상태 반영 + 토글 변화에 따라 start/stop.
         if settings.isTrackpadGesturesEnabled, MultitouchService.shared.isAvailable {
@@ -181,6 +261,75 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         // 종료 시 시스템 multitouch 콜백 정리 — 안 풀면 잠재적으로 freed memory에 fire 가능.
         MultitouchService.shared.stop()
+    }
+
+    /// middle 케이스용 polling — IMMEDIATE 없이 Space 변경 commit 시점에 softReveal 한 번 발사.
+    /// 변경 감지 못 한 채 timeout이면(boundary 감지 실패 등) softReveal로 fallback 발사.
+    /// closure 캡처 방식이라 다음 swipe로 중단 안 됨, 각 swipe 독립적으로 처리.
+    private func pollForMiddleSpaceChange(
+        gesture: TrackpadGesture, position: CGPoint,
+        sigBefore: String, firedAt: Date, deadline: Date
+    ) {
+        // Stale 보호: 자기 firedAt이 마지막 swipe firedAt보다 오래됐다 = 더 새 swipe가 이미 발생.
+        // 그쪽이 fire(boundary) 또는 자기 polling으로 처리 — 이 polling은 skip하여 중복 회피.
+        if firedAt < self.latestSwipeFiredAt {
+            return
+        }
+        if Date() > deadline {
+            // timeout: boundary 감지 실패 등 — softReveal로 fallback 발사.
+            self.effects.addTrackpadGesture(
+                gesture, at: position,
+                animationSpeed: self.settings.animationSpeed.multiplier,
+                softReveal: true
+            )
+            return
+        }
+        let sigNow = currentSpacesSignature()
+        if sigNow != sigBefore {
+            // Space 전환 commit 감지 → softReveal로 슬라이드 끝과 합류.
+            self.effects.addTrackpadGesture(
+                gesture, at: position,
+                animationSpeed: self.settings.animationSpeed.multiplier,
+                softReveal: true
+            )
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            self?.pollForMiddleSpaceChange(
+                gesture: gesture, position: position,
+                sigBefore: sigBefore, firedAt: firedAt, deadline: deadline
+            )
+        }
+    }
+
+    /// 수평 swipe의 boundary 여부 — cursor 위치 디스플레이의 현재 Space가 swipe 방향 끝에 있으면 true.
+    /// macOS: swipe LEFT(fingers) → 우측 Space로 이동 → 우측 끝이면 boundary
+    /// swipe RIGHT(fingers) → 좌측 Space로 이동 → 좌측 끝이면 boundary
+    private func isAtBoundaryFor(gesture: TrackpadGesture, position: CGPoint) -> Bool {
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(position) }),
+              let dispID = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+              let info = spaceIndexForDisplay(dispID) else {
+            return false  // 정보 못 얻으면 middle로 가정 (안전한 default — polling이 처리)
+        }
+        switch gesture {
+        case .threeFingerSwipeLeft, .fourFingerSwipeLeft:
+            return info.current >= info.total - 1
+        case .threeFingerSwipeRight, .fourFingerSwipeRight:
+            return info.current <= 0
+        default:
+            return false
+        }
+    }
+
+    /// 수평 swipe 여부 — Space 전환 발생 가능한 4종.
+    private static func isHorizontalSwipe(_ g: TrackpadGesture) -> Bool {
+        switch g {
+        case .threeFingerSwipeLeft, .threeFingerSwipeRight,
+             .fourFingerSwipeLeft, .fourFingerSwipeRight:
+            return true
+        default:
+            return false
+        }
     }
 
     // MARK: - 메뉴바

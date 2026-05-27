@@ -3,10 +3,17 @@ import ApplicationServices
 import ScreenCaptureKit
 import IOKit.hid
 
+// CGRequestListenEventAccess — private CoreGraphics API. CGRequestScreenCaptureAccess의 키보드 버전:
+// 입력 모니터링 TCC 목록 등록 + 첫 호출 시 prompt. macOS Sonoma+에서 IOHIDRequestAccess가
+// preflight 조회만 하고 prompt 안 띄우는 회귀가 있어 이쪽으로 우회 (BetterTouchTool 등 다수 앱이 사용).
+@_silgen_name("CGRequestListenEventAccess")
+private func CGRequestListenEventAccess() -> Bool
+
 // MARK: - PermissionsManager
 //
-// 손쉬운 사용 / 화면 녹화 / 입력 모니터링 / 입력 보내기 권한 요청·polling·설정 패널 오픈.
+// 손쉬운 사용 / 화면 녹화 / 입력 모니터링 권한 요청·polling·설정 패널 오픈.
 // 화면 녹화 권한 상태는 runtime.hasScreenRecordingPermission으로 publish.
+// PostEvent(입력 보내기)는 우리 앱이 이벤트 inject 안 하므로 필요 없음 — 체크 안 함.
 @MainActor
 final class PermissionsManager {
     // MARK: - 권한 타입 — launch 시 사용자에게 missing 안내할 때 사용
@@ -14,7 +21,6 @@ final class PermissionsManager {
         case accessibility = "손쉬운 사용"
         case screenRecording = "화면 녹화"
         case listenEvent = "입력 모니터링"
-        case postEvent = "입력 보내기"
 
         /// 현재 locale에서 표시할 이름. rawValue를 Localizable.xcstrings 키로 사용.
         var localizedName: String { String(localized: String.LocalizationValue(rawValue)) }
@@ -26,7 +32,6 @@ final class PermissionsManager {
             case .accessibility:    key = "Privacy_Accessibility"
             case .screenRecording:  key = "Privacy_ScreenCapture"
             case .listenEvent:      key = "Privacy_ListenEvent"
-            case .postEvent:        key = "Privacy_ListenEvent"  // PostEvent도 같은 입력 모니터링 패널
             }
             return URL(string: "x-apple.systempreferences:com.apple.preference.security?\(key)")!
         }
@@ -56,16 +61,24 @@ final class PermissionsManager {
 
     // MARK: - Screen Recording (화면 녹화 — 돋보기용)
 
-    /// 시스템 권한 다이얼로그 표시 + 설정 목록 자동 추가.
+    /// 시스템 권한 다이얼로그 표시 + 설정 목록 자동 추가 + 설정 패널 열기.
+    /// "권한 요청" 버튼 클릭 시 사용 — 사용자가 명시적으로 요청한 흐름.
     func requestScreenRecordingPermission() {
+        registerForScreenRecordingPrompt()
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
+    }
+
+    /// 시스템 권한 목록에 우리 앱을 silent 등록 — 설정 패널은 안 염.
+    /// 앱 launch 직후 한 번 호출하면 손쉬운 사용처럼 앱이 화면 녹화 목록에 자동 등장.
+    /// 사용자는 시스템 설정에서 그냥 토글만 하면 됨 (in-app 배너 거치지 않음).
+    /// 첫 호출 시 macOS 표준 프롬프트가 한 번 뜨는 건 손쉬운 사용 첫 사용 때와 동일.
+    func registerForScreenRecordingPrompt() {
         if #available(macOS 14.0, *) {
             CGRequestScreenCaptureAccess()
         } else {
             // macOS 13: SCShareableContent 조회로 프롬프트 유도 (deprecated API 없이)
             Task { _ = try? await SCShareableContent.current }
         }
-        // 시스템 설정도 함께 열어서 사용자가 바로 활성화할 수 있게
-        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
     }
 
     static func hasScreenRecordingPermission() -> Bool {
@@ -104,23 +117,29 @@ final class PermissionsManager {
         }
     }
 
-    // MARK: - 입력 모니터링 / 입력 보내기 — IOHIDCheckAccess (prompt 없는 상태 조회)
+    // MARK: - 입력 모니터링 — IOHIDCheckAccess (prompt 없는 상태 조회)
 
+    /// 키보드 CGEventTap(.keyDown)은 macOS 10.15+에서 Input Monitoring 요구.
+    /// KeyboardHotkeyHandler가 사용.
     static func hasListenEventPermission() -> Bool {
         IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
     }
-    static func hasPostEventPermission() -> Bool {
-        IOHIDCheckAccess(kIOHIDRequestTypePostEvent) == kIOHIDAccessTypeGranted
+
+    /// 입력 모니터링 목록에 silent 등록 + 첫 호출 시 prompt.
+    /// macOS Sonoma+ 에서 IOHIDRequestAccess는 preflight 조회만 하고 prompt 안 띄움(로그 검증됨).
+    /// CGRequestListenEventAccess가 CGRequestScreenCaptureAccess의 키보드 버전 — 이게 진짜 prompt를 띄움.
+    /// private CoreGraphics API라 @_silgen_name으로 직접 link (BetterTouchTool 등 다수 앱이 같은 패턴 사용).
+    func registerForInputMonitoringPrompt() {
+        _ = CGRequestListenEventAccess()
     }
 
-    /// 4개 권한 중 현재 부여되지 않은 것 — launch 시 사용자에게 alert.
+    /// 3개 권한 중 현재 부여되지 않은 것 — launch 시 사용자에게 alert.
     /// 모두 부여 시 빈 배열.
     static func missingPermissions() -> [PermissionType] {
         var missing: [PermissionType] = []
         if !isAccessibilityTrusted { missing.append(.accessibility) }
         if !hasScreenRecordingPermission() { missing.append(.screenRecording) }
         if !hasListenEventPermission() { missing.append(.listenEvent) }
-        if !hasPostEventPermission() { missing.append(.postEvent) }
         return missing
     }
 

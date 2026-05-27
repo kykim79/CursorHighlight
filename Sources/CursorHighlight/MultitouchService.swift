@@ -154,7 +154,12 @@ final class MultitouchService {
         var startTimestamp: Double
         var peakActiveCount: Int
         var fingers: [Int32: FingerTrace] = [:]   // by MTTouch.identifier
+        var lastFireTimestamp: Double = 0          // 0 = 아직 미발사. 쿨다운 + 재앵커 기반 재발사용.
     }
+
+    /// 미리 발사 후 다음 발사까지 최소 간격 (초). 한 swipe motion은 보통 0.15–0.3초 안에
+    /// 끝나므로 0.18초 cooldown은 단일 swipe의 중복 발사를 막으면서 반복 swipe는 매번 잡음.
+    private static let refireCooldown: Double = 0.18
 
     /// 콜백(시스템 스레드)에서 호출 — touch frame을 세션에 누적, 세션 종료 시 classify+emit.
     /// "active" 상태는 state == 3(Make) 또는 4(Touching) — 실제 접촉 중.
@@ -189,17 +194,37 @@ final class MultitouchService {
             }
         }
 
-        // 모든 손가락 lift → 세션 종료, 분류, emit
+        // 미리 발사 + 재발사 — motion이 분류 임계 넘으면 즉시 emit.
+        // 한 세션 안에서도 cooldown(0.18s) 지나면 다시 발사 가능 — 손가락 안 떼고
+        // 반복 swipe 하는 경우(좌·좌·좌 또는 좌·우·좌)에도 매번 잡힘.
+        // 재발사 시 활성 손가락의 startPos를 현재 위치로 리셋해 다음 motion을 fresh anchor에서 측정.
+        // 분류는 peakActiveCount 대신 현재 activeCount로 — 한 손가락 떨어진 뒤 3·4 finger
+        // gesture가 섞이는 경우에도 정확히 식별.
+        let timeSinceFire = timestamp - session!.lastFireTimestamp
+        let canFire = session!.lastFireTimestamp == 0 || timeSinceFire > Self.refireCooldown
+        if canFire && activeCount >= 3 {
+            let activeIDs = Set(active.map { $0.id })
+            let activeTraces = session!.fingers.compactMap { activeIDs.contains($0.key) ? $0.value : nil }
+            if let gesture = TrackpadGestureClassifier.classify(peakFingers: activeCount, traces: activeTraces) {
+                session!.lastFireTimestamp = timestamp
+                for f in active {
+                    session!.fingers[f.id]?.startPos = f.pos
+                }
+                let cb = onGesture
+                DispatchQueue.main.async { cb?(gesture) }
+            }
+        }
+
+        // 모든 손가락 lift → 세션 종료. 한 번이라도 발사됐으면 skip, 아니면 마지막 시도.
         if activeCount == 0 {
             let peak = session!.peakActiveCount
             let traces = Array(session!.fingers.values)
+            let everFired = session!.lastFireTimestamp != 0
             session = nil
 
-            if let gesture = TrackpadGestureClassifier.classify(peakFingers: peak, traces: traces) {
-                let cb = onGesture   // 캡처해서 락 해제 후 dispatch 안전
-                DispatchQueue.main.async {
-                    cb?(gesture)
-                }
+            if !everFired, let gesture = TrackpadGestureClassifier.classify(peakFingers: peak, traces: traces) {
+                let cb = onGesture
+                DispatchQueue.main.async { cb?(gesture) }
             }
         }
     }

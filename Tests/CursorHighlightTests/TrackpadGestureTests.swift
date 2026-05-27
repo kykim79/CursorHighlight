@@ -117,8 +117,8 @@ final class TrackpadGestureTests: XCTestCase {
     }
 
     func test_below_swipe_threshold_returns_nil() {
-        // 0.05 변위 = swipeThreshold(0.12) 미만 → swipe 아님. 3 finger라 pinch도 안 봄.
-        let traces = uniformSwipe(count: 3, startCenter: CGPoint(x: 0.5, y: 0.5), delta: CGPoint(x: 0.05, y: 0))
+        // 0.03 변위 = swipeThreshold(0.05) 미만 → swipe 아님. 3 finger라 pinch도 안 봄.
+        let traces = uniformSwipe(count: 3, startCenter: CGPoint(x: 0.5, y: 0.5), delta: CGPoint(x: 0.03, y: 0))
         XCTAssertNil(TrackpadGestureClassifier.classify(peakFingers: 3, traces: traces))
     }
 

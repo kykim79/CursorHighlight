@@ -231,22 +231,22 @@ private struct MagnifierTab: View {
 
     var body: some View {
         Form {
+            // 권한 안내 — 손쉬운 사용처럼 launch 시 자동 등록되므로 큰 배너 불필요.
+            // 한 줄 hint + Settings 링크만.
             if !runtime.hasScreenRecordingPermission {
                 Section {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("화면 녹화 권한이 필요합니다.")
-                                .font(.callout).fontWeight(.medium)
-                            Text("시스템 설정 → 개인 정보 보호 → 화면 녹화에서 허용 후 앱을 재시작하세요.")
-                                .font(.caption).foregroundColor(.secondary)
-                        }
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
+                        Text("화면 녹화 권한 필요 — 시스템 설정에서 활성화")
+                            .font(.caption).foregroundColor(.secondary)
                         Spacer()
-                        Button("권한 요청") {
+                        Button("설정 열기") {
                             (NSApp.delegate as? AppDelegate)?.requestScreenRecordingPermission()
                         }
+                        .controlSize(.small)
                     }
-                    .padding(.vertical, 2)
                 }
             }
 
