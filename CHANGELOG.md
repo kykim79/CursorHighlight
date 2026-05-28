@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.5.3] — 2026-05-29
+
+### Changed
+
+- **스포트라이트·돋보기도 ring shape를 따라감** — v0.5.2에서 클릭 효과를 ring shape에 맞췄는데, 스포트라이트 밝은 영역과 돋보기 렌즈는 여전히 원형 고정이었다. 이제 둘 다 선택한 ring shape(원형/둥근 사각형/마름모)와 같은 모양으로:
+  - **스포트라이트** — 어두운 오버레이에서 밝게 뚫리는 영역이 ring shape를 따름 (마스크 cutout).
+  - **돋보기** — 확대 렌즈 외형(clip + 외곽선)이 ring shape를 따름.
+
+### Internal
+
+- `SpotlightMask`·`SpotlightOverlayView`·`MagnifierLensView`에 `ringShape` 전달. cutout/clip을 `RingShape.anyShape.path(in:)`로 통일 — v0.5.2의 효과 shape 인프라 재사용. 원형은 기존과 동일 렌더.
+
 ## [0.5.2] — 2026-05-28
 
 ### Changed
