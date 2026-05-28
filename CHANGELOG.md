@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-18
+
+### Added
+
+- **낯선 모니터 자동 키스트로크** — 신뢰 목록에 없는 외장 모니터(회의실·강의실 등)에 연결되면 키스트로크 표시가 자동으로 켜짐. 발표 상황을 모니터로 감지. 모니터 분리 시 원래 상태로 복원 (자동 ON 전 이미 켜둔 상태였으면 유지).
+  - **신뢰 모니터 등록** — 환경설정 > 동작 탭에 현재 연결된 외장 모니터 목록 + 신뢰 체크박스. 자주 쓰는 데스크탑 모니터는 신뢰 등록해 자동 활성화에서 제외.
+  - **안정적 식별** — `CGDisplayCreateUUIDFromDisplayID`로 물리 디스플레이 UUID. 재연결해도 같은 모니터 인식 (EDID 있는 경우). default OFF.
+
+### Internal
+
+- `MonitorIdentity.swift` — NSScreen 확장 (displayID/stableUUID/isBuiltin/friendlyName) + `ExternalMonitor` 스냅샷.
+- `CursorSettings`: `autoKeystrokeOnUnknownMonitor` (@Persisted) + `trustedMonitorUUIDs` ([String], UserDefaults 직접).
+- `AppDelegate.evaluateAutoKeystroke()` — `screensChanged()` + launch 시 호출. 자동 ON/OFF 상태 추적 (autoKeystrokeActive + keystrokeStateBeforeAuto로 복원).
+
 ## [0.4.1] — 2026-05-18
 
 ### Added

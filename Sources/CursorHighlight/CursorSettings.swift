@@ -39,9 +39,28 @@ final class CursorSettings: ObservableObject {
     @Persisted("isCometTailEnabled", default: false) var isCometTailEnabled: Bool  // #18 — 드래그 streak, 임팩트 커서 default off
     @Persisted("isDragAngleLabelEnabled", default: false) var isDragAngleLabelEnabled: Bool  // 드래그 중 각도 표시 (도면용 — default off)
 
+    // 낯선 외장 모니터(신뢰 목록에 없는) 연결 시 키스트로크 표시 자동 ON — 발표·회의 상황 감지.
+    // 자주 쓰는 데스크탑 모니터는 trustedMonitorUUIDs에 등록해 제외.
+    @Persisted("autoKeystrokeOnUnknownMonitor", default: false) var autoKeystrokeOnUnknownMonitor: Bool
+
     // 발표/녹화용 일시 토글 — overlay window의 sharingType을 .readOnly로 풀어 외부 screencapture/OBS가 잡을 수 있게.
     // 평소 .none이라야 CursorHighlight 자체 돋보기가 자기 overlay를 다시 capture하지 않음. 앱 재시작 시 항상 false.
     @Published var isScreenshotMode: Bool = false
+
+    // 신뢰 모니터 UUID 목록 — 자동 키스트로크 활성화에서 제외할 모니터. [String]이라 @Persisted 미지원, 별도 처리.
+    @Published var trustedMonitorUUIDs: [String] = [] {
+        didSet { UserDefaults.standard.set(trustedMonitorUUIDs, forKey: "trustedMonitorUUIDs") }
+    }
+
+    func isTrustedMonitor(_ uuid: String) -> Bool { trustedMonitorUUIDs.contains(uuid) }
+
+    func setTrusted(_ uuid: String, trusted: Bool) {
+        if trusted {
+            if !trustedMonitorUUIDs.contains(uuid) { trustedMonitorUUIDs.append(uuid) }
+        } else {
+            trustedMonitorUUIDs.removeAll { $0 == uuid }
+        }
+    }
 
     // customRingColor는 Color → NSColor → [Double] RGBA 변환 필요해서 @Persisted 미지원, 별도 처리
     @Published var customRingColor: Color = Color(red: 1, green: 0.5, blue: 0) {
@@ -55,6 +74,9 @@ final class CursorSettings: ObservableObject {
         if let rgba = UserDefaults.standard.array(forKey: "customRingColor") as? [Double], rgba.count >= 3 {
             customRingColor = Color(red: rgba[0], green: rgba[1], blue: rgba[2],
                                     opacity: rgba.count > 3 ? rgba[3] : 1.0)
+        }
+        if let uuids = UserDefaults.standard.array(forKey: "trustedMonitorUUIDs") as? [String] {
+            trustedMonitorUUIDs = uuids
         }
     }
 

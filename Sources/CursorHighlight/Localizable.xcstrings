@@ -2,6 +2,12 @@
   "sourceLanguage" : "ko",
   "version" : "1.0",
   "strings" : {
+    "낯선 모니터 자동 키스트로크" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-Keystroke on Unknown Monitor" } } } },
+    "낯선 외장 모니터 연결 시 키스트로크 자동 표시" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-show keystrokes when an unknown external monitor connects" } } } },
+    "회의실·강의실처럼 처음 연결하는 외장 모니터에서 자동으로 키스트로크 표시가 켜집니다. 자주 쓰는 데스크탑 모니터는 아래에서 신뢰 등록해 제외하세요." : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Keystroke display turns on automatically for external monitors you connect for the first time (meeting rooms, lecture halls). Trust your everyday desktop monitors below to exclude them." } } } },
+    "연결된 외장 모니터 없음" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "No external monitor connected" } } } },
+    "신뢰 — 이 모니터에서는 자동 활성화 안 함" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Trusted — won't auto-enable on this monitor" } } } },
+    "⌨ 낯선 모니터 감지 — 키스트로크 표시 켜짐" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "⌨ Unknown monitor detected — keystroke display on" } } } },
     "환경설정..." : {
       "localizations" : {
         "en" : {

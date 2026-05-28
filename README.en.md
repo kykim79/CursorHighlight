@@ -15,7 +15,7 @@ macOS menu bar app. Visually emphasizes the mouse cursor for screen recording, p
 - **Cursor Trail** — afterglow comet tail
 - **Magnifier** — real-time 1.5×–4× zoom around cursor
 - **Spotlight** — dim everything except a circle around the cursor
-- **Keystroke Display** — show pressed shortcuts as bottom overlay
+- **Keystroke Display** — show pressed shortcuts as bottom overlay. Optional auto-enable when an unknown external monitor (meeting room, etc.) connects (trusted monitors excluded)
 - **Shake Detection** — wave the mouse to flash SOS ring at the cursor
 - **Screenshot Mode** — menu bar toggle. Normally overlay window has `sharingType = .none` (so the magnifier doesn't re-capture itself), but you can flip it to `.readOnly` temporarily for external `screencapture`/OBS. Auto-OFF on app restart.
 

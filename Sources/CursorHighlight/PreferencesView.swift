@@ -181,6 +181,7 @@ private struct ColorSwatch: View {
 private struct BehaviorTab: View {
     @ObservedObject var settings: CursorSettings
     @State private var launchAtLogin: Bool = false
+    @State private var externalMonitors: [ExternalMonitor] = []
 
     var body: some View {
         Form {
@@ -190,6 +191,30 @@ private struct BehaviorTab: View {
                         Slider(value: $settings.keystrokeTimeout, in: 1...8, step: 0.5)
                         Text(String(format: "%.1f초", settings.keystrokeTimeout))
                             .monospacedDigit().frame(width: 44, alignment: .trailing)
+                    }
+                }
+            }
+
+            Section("낯선 모니터 자동 키스트로크") {
+                Toggle("낯선 외장 모니터 연결 시 키스트로크 자동 표시", isOn: $settings.autoKeystrokeOnUnknownMonitor)
+                Text("회의실·강의실처럼 처음 연결하는 외장 모니터에서 자동으로 키스트로크 표시가 켜집니다. 자주 쓰는 데스크탑 모니터는 아래에서 신뢰 등록해 제외하세요.")
+                    .font(.caption2).foregroundColor(.secondary)
+
+                if settings.autoKeystrokeOnUnknownMonitor {
+                    if externalMonitors.isEmpty {
+                        Text("연결된 외장 모니터 없음").font(.caption).foregroundColor(.secondary)
+                    } else {
+                        ForEach(externalMonitors) { mon in
+                            Toggle(isOn: Binding(
+                                get: { settings.isTrustedMonitor(mon.uuid) },
+                                set: { settings.setTrusted(mon.uuid, trusted: $0) }
+                            )) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(mon.name)
+                                    Text("신뢰 — 이 모니터에서는 자동 활성화 안 함").font(.caption2).foregroundColor(.secondary)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -215,7 +240,13 @@ private struct BehaviorTab: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal)
-        .onAppear { launchAtLogin = settings.launchAtLoginEnabled }
+        .onAppear {
+            launchAtLogin = settings.launchAtLoginEnabled
+            externalMonitors = ExternalMonitor.current()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
+            externalMonitors = ExternalMonitor.current()
+        }
     }
 }
 

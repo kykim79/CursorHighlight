@@ -45,6 +45,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var isEnabled = true
 
+    // 낯선 외장 모니터 자동 키스트로크 상태 추적.
+    // autoKeystrokeActive: 우리가 자동으로 켰는지. keystrokeStateBeforeAuto: 자동 켜기 직전 사용자 상태(복원용).
+    private var autoKeystrokeActive = false
+    private var keystrokeStateBeforeAuto = false
+
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -60,6 +65,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        // 시작 시 이미 낯선 외장 모니터 연결돼 있으면 자동 키스트로크 평가
+        evaluateAutoKeystroke()
 
         // UI 안정화 후 권한 4개 체크 — 일부라도 missing 시 alert.
         // brew upgrade 같은 cdhash 변경으로 권한이 reset된 경우 사용자에게 즉시 안내.
@@ -437,7 +445,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         primaryScreenHeight = NSScreen.screens.first?.frame.height ?? 0
     }
 
-    @objc private func screensChanged() { setupOverlays() }
+    @objc private func screensChanged() {
+        setupOverlays()
+        evaluateAutoKeystroke()
+    }
+
+    /// 낯선 외장 모니터(신뢰 목록에 없는) 연결 시 키스트로크 표시 자동 ON, 분리 시 원래대로.
+    /// 자동 ON 전 사용자가 이미 켜둔 상태였으면 분리해도 그 상태(true) 유지.
+    private func evaluateAutoKeystroke() {
+        guard settings.autoKeystrokeOnUnknownMonitor else {
+            // 기능 OFF — 자동으로 켜둔 게 있으면 직전 상태로 복원
+            if autoKeystrokeActive {
+                settings.isKeystrokeEnabled = keystrokeStateBeforeAuto
+                autoKeystrokeActive = false
+            }
+            return
+        }
+        let externals = ExternalMonitor.current()
+        let hasUnknown = externals.contains { !settings.isTrustedMonitor($0.uuid) }
+        if hasUnknown {
+            if !autoKeystrokeActive {
+                keystrokeStateBeforeAuto = settings.isKeystrokeEnabled
+                autoKeystrokeActive = true
+                if !settings.isKeystrokeEnabled {
+                    settings.isKeystrokeEnabled = true
+                    keystrokeOverlay.showStatusNotification(String(localized: "⌨ 낯선 모니터 감지 — 키스트로크 표시 켜짐"))
+                }
+            }
+        } else {
+            if autoKeystrokeActive {
+                settings.isKeystrokeEnabled = keystrokeStateBeforeAuto
+                autoKeystrokeActive = false
+            }
+        }
+    }
 }
 
 // MARK: - 메뉴 열릴 때마다 토글 항목 ✓ state 동기화
