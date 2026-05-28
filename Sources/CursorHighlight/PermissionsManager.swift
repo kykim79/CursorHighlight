@@ -35,6 +35,37 @@ final class PermissionsManager {
             }
             return URL(string: "x-apple.systempreferences:com.apple.preference.security?\(key)")!
         }
+
+        /// `tccutil reset`에 넘기는 TCC 서비스 이름.
+        var tccServiceName: String {
+            switch self {
+            case .accessibility:    return "Accessibility"
+            case .screenRecording:  return "ScreenCapture"
+            case .listenEvent:      return "ListenEvent"
+            }
+        }
+    }
+
+    /// 업데이트(버전 변경)로 인한 실행인지 판정. 신규 설치 첫 실행(previous == nil)은 false.
+    /// 순수 함수 — Tests에서 검증.
+    static func isUpdateLaunch(previous: String?, current: String) -> Bool {
+        guard let previous else { return false }
+        return previous != current
+    }
+
+    /// 주어진 권한들의 TCC 엔트리를 `tccutil reset`으로 초기화한다 (stale 엔트리 제거).
+    /// ad-hoc 빌드는 업데이트마다 cdhash가 바뀌어 TCC가 기존 권한을 못 알아보는데, 이때 설정 목록엔
+    /// 여전히 체크돼 보여 사용자가 off→on 토글을 강제당한다. stale 엔트리를 지우면 깨끗하게 재허용만 하면 됨.
+    /// 자기 앱 권한이라 sudo 불필요. 동기 실행(`waitUntilExit`)이라 호출 후 곧바로 재등록 가능.
+    static func resetTCCEntries(for types: [PermissionType]) {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        for type in types {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+            process.arguments = ["reset", type.tccServiceName, bundleID]
+            try? process.run()
+            process.waitUntilExit()
+        }
     }
 
     private weak var runtime: CursorRuntimeState?

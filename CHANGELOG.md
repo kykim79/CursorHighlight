@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.5.6] — 2026-05-29
+
+### Added
+
+- **업데이트로 깨진 권한 자동 초기화** — ad-hoc 빌드는 업데이트마다 cdhash가 바뀌어 TCC 권한이 깨지는데(시스템 설정엔 체크돼 보이지만 실제로는 작동 안 함), 그동안 사용자가 권한을 직접 껐다 켜야 했다. 이제 **버전이 바뀐 실행에서 권한이 실제로 깨진(missing) 경우에만** 해당 권한의 TCC 엔트리를 `tccutil reset`으로 초기화하고 시스템 목록에 재등록한다 — 사용자는 시스템 설정에서 켜기만 하면 된다. 정상 유지된 권한과 신규 설치 첫 실행은 건드리지 않는다. (버전 기록은 이 버전부터 시작하므로 **v0.5.6 이후의 업데이트**부터 동작한다.)
+
+### Internal
+
+- `PermissionsManager.isUpdateLaunch(previous:current:)`·`resetTCCEntries(for:)`, `PermissionType.tccServiceName` 추가. 업데이트 감지는 `UserDefaults`의 `lastRunVersion` 비교. 권한 reset 시 `os.Logger`로 진단 로그 1줄. 순수 로직 단위 테스트 5개 추가(총 72개). PostEvent는 앱이 이벤트를 inject하지 않아 대상에서 제외.
+
 ## [0.5.5] — 2026-05-29
 
 ### Added

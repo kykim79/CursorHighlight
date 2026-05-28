@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import SwiftUI
+import os
 
 // private CoreGraphics API — Space 전환 polling. NSWorkspace.activeSpaceDidChangeNotification이
 // 내장 모니터에서 안 오는 케이스 backup. CGSManagedDisplayGetCurrentSpace로 디스플레이별 active
@@ -67,6 +68,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var appActivationDetector: AppActivationDetector?
     private var magnifierCaptureService: MagnifierCaptureService?
     private var keyboardHotkeyHandler: KeyboardHotkeyHandler?
+
+    /// 마지막 실행 버전 — 업데이트(버전 변경) 감지용. 업데이트로 권한이 깨졌을 때만 TCC reset.
+    private static let lastRunVersionKey = "lastRunVersion"
 
     // MARK: - UI
     private var statusItem: NSStatusItem?
@@ -145,10 +149,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // 모든 시도에서 일관되게 missing이었던 권한만 진짜 missing — 한 번이라도 부여 검출되면 제외.
         let alwaysMissing = attempts.dropFirst().reduce(attempts.first ?? []) { $0.intersection($1) }
-        guard !alwaysMissing.isEmpty else { return }
 
         // 안내 순서를 enum 순서대로 안정화 (PermissionType.allCases 기준)
         let missingOrdered = PermissionsManager.PermissionType.allCases.filter { alwaysMissing.contains($0) }
+
+        // 업데이트(버전 변경)로 권한이 깨진 경우에만 깨진 권한의 stale TCC 엔트리를 초기화하고 목록에 재등록한다.
+        // ad-hoc 빌드는 cdhash 변경으로 권한이 깨져도 설정엔 체크돼 보여 사용자가 off→on 토글을 강제당하는데,
+        // stale 엔트리를 지우면 켜기만 하면 됨. 정상 유지된 권한·신규 설치 첫 실행은 건드리지 않음.
+        let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let previousVersion = UserDefaults.standard.string(forKey: Self.lastRunVersionKey)
+        let isUpdate = PermissionsManager.isUpdateLaunch(previous: previousVersion, current: currentVersion)
+        UserDefaults.standard.set(currentVersion, forKey: Self.lastRunVersionKey)
+        if isUpdate && !missingOrdered.isEmpty {
+            let names = missingOrdered.map(\.rawValue).joined(separator: ", ")
+            Logger(subsystem: Bundle.main.bundleIdentifier ?? "CursorHighlight", category: "permissions")
+                .notice("업데이트(\(previousVersion ?? "?", privacy: .public)→\(currentVersion, privacy: .public))로 깨진 권한 초기화: \(names, privacy: .public)")
+            PermissionsManager.resetTCCEntries(for: missingOrdered)
+            permissionsManager?.registerForScreenRecordingPrompt()
+            permissionsManager?.registerForInputMonitoringPrompt()
+        }
+
+        guard !missingOrdered.isEmpty else { return }
 
         let alert = NSAlert()
         alert.messageText = String(localized: "권한 일부 재부여 필요")
