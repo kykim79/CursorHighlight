@@ -66,6 +66,7 @@ struct OverlayContentView: View {
                         isDouble: effect.isDouble,
                         color: effectiveColor,
                         rightClickUsesRingColor: settings.rightClickUsesRingColor,
+                        ringShape: settings.ringShape,
                         speed: speed
                     )
                 }
@@ -74,21 +75,21 @@ struct OverlayContentView: View {
             // 더블클릭 버스트
             ForEach(effects.doubleClickEffects) { effect in
                 if screenFrame.contains(effect.position) {
-                    DoubleClickBurstView(position: toLocal(effect.position), color: effectiveColor, speed: speed)
+                    DoubleClickBurstView(position: toLocal(effect.position), color: effectiveColor, ringShape: settings.ringShape, speed: speed)
                 }
             }
 
             // 휠 클릭 (button 2) — 회전 파동
             ForEach(effects.middleClickEffects) { effect in
                 if screenFrame.contains(effect.position) {
-                    MiddleClickEffectView(position: toLocal(effect.position), color: effectiveColor, speed: speed)
+                    MiddleClickEffectView(position: toLocal(effect.position), color: effectiveColor, ringShape: settings.ringShape, speed: speed)
                 }
             }
 
             // 흔들기
             ForEach(effects.shakeEffects) { effect in
                 if screenFrame.contains(effect.position) {
-                    ShakeEffectView(position: toLocal(effect.position), color: effectiveColor, speed: speed)
+                    ShakeEffectView(position: toLocal(effect.position), color: effectiveColor, ringShape: settings.ringShape, speed: speed)
                 }
             }
 
@@ -328,6 +329,24 @@ struct RhombusShape: Shape {
         path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
         path.closeSubpath()
         return path
+    }
+}
+
+/// 둥근 사각형 — cornerRadius를 frame 크기 비율(28%)로 잡아 ring과 동일 외형. 효과에 재사용.
+struct SquircleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        RoundedRectangle(cornerRadius: rect.width * 0.28, style: .continuous).path(in: rect)
+    }
+}
+
+extension CursorSettings.RingShape {
+    /// 클릭·버스트·흔들기·휠클릭 등 모든 효과가 ring shape를 따라가도록 재사용하는 type-erased Shape.
+    var anyShape: AnyShape {
+        switch self {
+        case .circle:   return AnyShape(Circle())
+        case .squircle: return AnyShape(SquircleShape())
+        case .rhombus:  return AnyShape(RhombusShape())
+        }
     }
 }
 
@@ -703,22 +722,23 @@ struct ScrollIndicatorView: View {
 struct MiddleClickEffectView: View {
     let position: CGPoint
     let color: Color
+    let ringShape: CursorSettings.RingShape
     let speed: Double
     @State private var scale: CGFloat = 0.3
     @State private var opacity: Double = 1.0
     @State private var rotation: Double = 0
 
     var body: some View {
+        // ring shape 2개가 반대 방향으로 회전하며 확장 — "휠 클릭"의 회전 의미.
+        // 원형은 회전이 안 보이지만 2중 확장으로 구별, 둥근 사각형·마름모는 회전이 뚜렷.
         ZStack {
-            // 시계방향 호 (위쪽 1/4)
-            Arc(startAngle: .degrees(-45), endAngle: .degrees(45))
-                .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .frame(width: 70, height: 70)
+            ringShape.anyShape
+                .stroke(color, style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
+                .frame(width: 64, height: 64)
                 .rotationEffect(.degrees(rotation))
-            // 반시계 호 (아래쪽 1/4)
-            Arc(startAngle: .degrees(135), endAngle: .degrees(225))
-                .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                .frame(width: 70, height: 70)
+            ringShape.anyShape
+                .stroke(color.opacity(0.55), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: 64, height: 64)
                 .rotationEffect(.degrees(-rotation))
         }
         .scaleEffect(scale)
@@ -728,7 +748,7 @@ struct MiddleClickEffectView: View {
             withAnimation(.easeOut(duration: 0.7 * speed)) {
                 scale = 1.6
                 opacity = 0
-                rotation = 180
+                rotation = 90
             }
         }
     }
@@ -780,19 +800,6 @@ struct DragAngleLabel: View {
         case 293..<338:           return "↖"
         default:                  return "•"
         }
-    }
-}
-
-/// 단순 호 Shape — startAngle ~ endAngle 사이 호만 그림.
-private struct Arc: Shape {
-    let startAngle: Angle
-    let endAngle: Angle
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        let radius = min(rect.width, rect.height) / 2
-        path.addArc(center: center, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
-        return path
     }
 }
 

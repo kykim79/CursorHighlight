@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-05-28
+
+### Changed
+
+- **클릭·효과가 ring shape를 따라감** — 기존엔 ring을 둥근 사각형·마름모로 바꿔도 클릭 파동·버스트·흔들기·휠클릭이 항상 원형(우클릭만 마름모)이라 안 어울렸다. 이제 모든 효과가 선택한 ring shape(원형/둥근 사각형/마름모)와 같은 모양으로:
+  - **좌클릭** — ring shape 1중 파동 (흰색)
+  - **우클릭** — ring shape 2중 파동 + 회전 (색·2중·회전으로 좌클릭과 차별)
+  - **더블클릭** — ring shape 버스트 (채움 + 외곽선)
+  - **휠클릭** — ring shape 2개가 반대 방향 회전하며 확장 (회전 의미 유지)
+  - **흔들기 SOS** — ring shape 3중 확장
+  - 스크롤 화살표·키스트로크·클립보드 이모지는 모양 무관이라 그대로.
+
+### Internal
+
+- `CursorSettings.RingShape.anyShape` (AnyShape) — 모든 효과가 재사용하는 type-erased shape. `SquircleShape` struct 분리 (cornerRadius = 28% 비율). 효과별 `Circle()`/`RhombusShape()` 하드코딩 제거. 미사용 `Arc` shape 삭제.
+
 ## [0.5.1] — 2026-05-28
 
 ### Fixed
