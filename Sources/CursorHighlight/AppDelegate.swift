@@ -551,6 +551,53 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             runtime.cursorPosition = pos
         }
 
+        // Radial Menu 활성 중 — cursor 위치로 sector + subItem 강조 갱신.
+        // dead zone(<50pt)=cancel · 메인 wedge(50~150pt)=sector 자유 변경 · 서브 wedge(≥150pt)=현재 sector 잠금.
+        // 잠금 이유: subSpan이 45° 넘으면 옆 sector 영역까지 침범하는데, sector를 매번 재계산하면 다른 메뉴로 새버려서
+        //   사용자가 가장 가장자리 sub 항목을 못 누르는 실수가 잦았음. 서브 진입 후엔 활성 sector 유지 + sub만 가장 가까운 데로 clamp.
+        if runtime.isRadialMenuActive {
+            let dx = pos.x - runtime.radialMenuCenter.x
+            let dy = pos.y - runtime.radialMenuCenter.y
+            let dist = sqrt(dx*dx + dy*dy)
+            let newSector: Int?
+            var newSubItem: Int? = nil
+            if dist < Tokens.Radial.deadRadius {
+                newSector = nil
+            } else if dist > Tokens.Radial.subOuter {
+                // 메뉴 바깥(서브 ring 너머) — 어떤 sub도 선택되지 않은 상태. 그 자리 클릭은 무효.
+                newSector = nil
+            } else {
+                let atan2Deg = atan2(dy, dx) * 180 / .pi
+                let cwFromTop = (90 - atan2Deg + 720).truncatingRemainder(dividingBy: 360)
+                if dist < Tokens.Radial.mainOuter {
+                    // 메인 영역 — sector를 angle로 자유 결정 (옆으로 가면 그쪽 sector로 전환).
+                    newSector = Int((cwFromTop + 22.5) / 45) % 8
+                } else {
+                    // 서브 영역 — 활성 sector "잠금". 이미 sector가 선택돼 있으면 그대로, 첫 진입이면 angle로.
+                    let lockedSec = runtime.radialMenuSelectedSector ?? Int((cwFromTop + 22.5) / 45) % 8
+                    newSector = lockedSec
+                    if let item = CursorSettings.RadialMenuItem(rawValue: lockedSec), item.subCount > 0 {
+                        let mainAngle = Double(lockedSec) * 45
+                        let subSpan = item.subSpan
+                        let step = subSpan / Double(item.subCount)
+                        // cwFromTop이 활성 sector 중심에서 벗어난 정도 (-180~+180으로 wrap)
+                        var diff = cwFromTop - mainAngle
+                        if diff > 180  { diff -= 360 }
+                        if diff < -180 { diff += 360 }
+                        let relAngle = diff + subSpan/2  // 0~subSpan 정규화
+                        let clamped = max(0, min(subSpan - 0.001, relAngle))
+                        newSubItem = Int(clamped / step)
+                    }
+                }
+            }
+            if runtime.radialMenuSelectedSector != newSector {
+                runtime.radialMenuSelectedSector = newSector
+            }
+            if runtime.radialMenuSelectedSubItem != newSubItem {
+                runtime.radialMenuSelectedSubItem = newSubItem
+            }
+        }
+
         // 트레일 샘플링 (~15Hz throttle)
         if now - lastTrailSampleTime > 0.066 {
             lastTrailSampleTime = now
@@ -620,6 +667,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let self else { return }
                 self.lastMoveTime = Date()
                 self.runtime.isCursorVisible = true
+                // Radial menu 활성 중 클릭은 sub 실행 / dead zone close — 일반 클릭 효과 표시 안 함 (메뉴 위 ripple 부적절).
+                if self.runtime.isRadialMenuActive {
+                    self.keyboardHotkeyHandler?.handleRadialMenuClick()
+                    return
+                }
                 let pos = self.runtime.cursorPosition
                 self.effects.addClickEffect(at: pos, isRight: false, isDouble: isDouble, animationSpeed: self.settings.animationSpeed.multiplier)
                 self.runtime.triggerClickPulse(isDouble: isDouble)
@@ -670,6 +722,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         monitor?.start()
+        keyboardHotkeyHandler?.mouseMonitor = monitor  // radial menu 활성 동안 좌클릭 소비 제어
     }
 
     // MARK: - 오버레이 윈도우

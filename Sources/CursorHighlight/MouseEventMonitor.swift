@@ -5,6 +5,9 @@ import AppKit
 class MouseEventMonitor {
     var onMouseMove: ((CGPoint) -> Void)?
     var onLeftClick: ((CGPoint, Bool) -> Void)?   // (position, isDouble)
+    /// Background thread에서 호출 — radial menu 활성 중에만 true 리턴해 좌클릭을 소비.
+    /// main에서 갱신 (한 워드 Bool read), 단일 Bool라 race tolerated.
+    nonisolated(unsafe) var shouldConsumeLeftClick: Bool = false
     var onRightClick: ((CGPoint) -> Void)?
     var onMiddleClick: ((CGPoint) -> Void)?       // 휠 클릭 (button 2)
     var onShake: ((CGPoint) -> Void)?
@@ -50,7 +53,7 @@ class MouseEventMonitor {
         let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
-            options: .listenOnly,
+            options: .defaultTap,  // 평소 consume 안 함. radial menu 활성 중 leftMouseDown만 소비.
             eventsOfInterest: mask,
             callback: { _, type, event, refcon -> Unmanaged<CGEvent>? in
                 guard let refcon else { return Unmanaged.passRetained(event) }
@@ -95,6 +98,10 @@ class MouseEventMonitor {
                     let clickState = event.getIntegerValueField(.mouseEventClickState)
                     let isDouble = clickState >= 2
                     DispatchQueue.main.async { m.onLeftClick?(loc, isDouble) }
+                    // Radial menu 활성 중에는 click을 underlying app에 보내지 않음 — sub 실행 트리거 전용
+                    if m.shouldConsumeLeftClick {
+                        return nil
+                    }
 
                 case .leftMouseUp:
                     if m.inDrag {

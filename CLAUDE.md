@@ -62,3 +62,7 @@ xcodebuild ... test -only-testing:CursorHighlightTests/ShakeDetectionTests/test_
 ## 릴리스
 
 `v*.*.*` (또는 `v*.*`) 태그 push → `.github/workflows/release.yml`이 macOS runner에서 `xcodegen` + `xcodebuild Release`(ad-hoc 사이닝) → `ditto`로 zip → GitHub Release 업로드 → `kykim79/homebrew-tap`의 Cask에 version + sha256 자동 commit. 버전은 태그에서 추출해 `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`으로 주입(로컬 빌드는 `project.yml`의 기본값). 릴리스 시 `CHANGELOG.md`(Keep a Changelog 형식)와 `project.yml`의 `MARKETING_VERSION`을 함께 갱신한다.
+
+## Design System
+
+UI 효과·오버레이 시각 결정은 항상 `DESIGN.md`를 먼저 읽고 따른다. 색·spacing·corner radius·motion duration·spring 파라미터·radial menu 거리·notification 포맷이 거기에 토큰화되어 있다. 새 효과 추가 시 토큰 외 값을 하드코딩하지 말 것 — 시스템 일관성이 깨진다. 이탈이 필요하면 명시적으로 사용자 승인 + Decisions Log 갱신.

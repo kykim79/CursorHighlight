@@ -19,7 +19,7 @@ struct OverlayContentView: View {
             // 스포트라이트
             if runtime.isSpotlightActive {
                 if cursorOnScreen { SpotlightView(position: localPos, radius: settings.spotlightRadius, ringShape: settings.ringShape) }
-                else              { Color.black.opacity(0.78) }
+                else              { Tokens.Surface.dim }
             }
 
             // 커서 트레일 — 좌표 변환은 TrailView 내부에서 (body 재계산 시 매번 filter+map 회피)
@@ -61,7 +61,50 @@ struct OverlayContentView: View {
 
             // 드래그 각도 라벨 — 도면/일러스트레이션용. cursor 우상단 작은 라벨.
             if settings.isDragAngleLabelEnabled && runtime.isDragging && cursorOnScreen {
-                DragAngleLabel(position: localPos, angleRadians: runtime.dragAngle)
+                let dragDistance: CGFloat = {
+                    guard let origin = runtime.dragOrigin else { return 0 }
+                    let dx = runtime.cursorPosition.x - origin.x
+                    let dy = runtime.cursorPosition.y - origin.y
+                    return sqrt(dx*dx + dy*dy)
+                }()
+                DragAngleLabel(position: localPos, angleRadians: runtime.dragAngle, distance: dragDistance)
+            }
+            // Radial Menu (⌃⌥Space hold) — 메인 8개 sector + 서브 fan (해당 sector 활성 시).
+            // 150ms 이상 hold 시에만 시각 표시 (marking mode — 빠른 release면 sector 계산은 진행되어도 메뉴 안 보임).
+            if runtime.isRadialMenuActive && runtime.isRadialMenuVisible && screenFrame.contains(runtime.radialMenuCenter) {
+                let currentValues: [String] = (0..<8).map { i in
+                    CursorSettings.RadialMenuItem(rawValue: i)?.currentValue(settings: settings, runtime: runtime) ?? ""
+                }
+                // 활성 sector의 sub들 중 현재 설정값/활성 상태인 것을 미리 계산해서 RadialMenuView에 전달.
+                // 사용자가 sub region 진입 전부터 "어떤 게 현재 활성인지" 보임 → 어디로 끌어야 할지 즉시 판단.
+                let subActiveStates: [Bool]? = runtime.radialMenuSelectedSector.flatMap { sec in
+                    CursorSettings.RadialMenuItem(rawValue: sec).map { item in
+                        (0..<item.subCount).map { item.isSubCurrent(at: $0, settings: settings, runtime: runtime) }
+                    }
+                }
+                RadialMenuView(
+                    center: toLocal(runtime.radialMenuCenter),
+                    selectedSector: runtime.radialMenuSelectedSector,
+                    selectedSubItem: runtime.radialMenuSelectedSubItem,
+                    currentValues: currentValues,
+                    subActiveStates: subActiveStates,
+                    showHelp: runtime.radialMenuShowHelp,
+                    accentColor: effectiveColor
+                )
+                // 메뉴 활성 동안 cursor 위치에 작은 흰 ring — 사용자가 자기 cursor 위치 인지 단서
+                if cursorOnScreen {
+                    Circle()
+                        .stroke(Tokens.Stroke.cursor, lineWidth: 1.5)
+                        .frame(width: 14, height: 14)
+                        .position(localPos)
+                        .allowsHitTesting(false)
+                }
+            }
+
+            // 화면 좌표 인스펙터 (⌃⌥I 토글) — cursor 우하단에 Quartz(top-left) 시스템 좌표.
+            if runtime.isInspectorActive && cursorOnScreen {
+                let quartzY = (NSScreen.main?.frame.height ?? 0) - runtime.cursorPosition.y
+                InspectorView(position: localPos, quartzGlobal: CGPoint(x: runtime.cursorPosition.x, y: quartzY))
             }
 
             // 클릭 파동
@@ -171,7 +214,7 @@ struct SpotlightView: View {
 
     var body: some View {
         Canvas { context, size in
-            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(.black.opacity(0.78)))
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Tokens.Surface.dim))
             context.blendMode = .clear
             // 밝게 뚫리는 cutout이 ring shape를 따름. gradient는 radial 유지(중심→가장자리 fade).
             let cutout = CGRect(x: position.x - radius, y: position.y - radius,
@@ -671,8 +714,8 @@ struct KeystrokeDisplayView: View {
             .padding(.horizontal, 26)
             .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.black.opacity(0.72))
+                RoundedRectangle(cornerRadius: Tokens.Radius.xl)
+                    .fill(Tokens.Surface.panel)
                     .shadow(color: .black.opacity(0.4), radius: 12)
             )
             .opacity(isVisible ? 1 : 0)
@@ -778,10 +821,11 @@ struct MiddleClickEffectView: View {
 struct DragAngleLabel: View {
     let position: CGPoint
     let angleRadians: Double
+    let distance: CGFloat
 
     var body: some View {
         let degrees = Self.clockwiseDegrees(fromAtan2: angleRadians)
-        Text("\(Self.directionArrow(forCWDegrees: degrees)) \(degrees)°")
+        Text("\(Self.directionArrow(forCWDegrees: degrees)) \(degrees)° · \(Int(distance))px")
             .font(.system(size: 11, weight: .semibold, design: .monospaced))
             .foregroundColor(.white)
             .padding(.horizontal, 6)
@@ -816,6 +860,234 @@ struct DragAngleLabel: View {
         case 293..<338:           return "↖"
         default:                  return "•"
         }
+    }
+}
+
+// MARK: - Radial Menu (⌃⌥Space hold)
+
+/// 메인 8개 sector. 12시=0, 시계방향 45°씩. 카테고리 분리:
+///   위쪽 4(7·0·1·6) = 모드/표시 토글류, 아래쪽 4(5·4·3·2) = 외형 cycle류.
+/// 강조된 sector는 현재 ring color(accentColor)로 액센트 + 살짝 확대.
+/// dead zone 40pt — 중심 근처에서 떼면 cancel (sector=nil).
+struct RadialMenuView: View {
+    let center: CGPoint           // overlay 내 위치(toLocal 변환됨)
+    let selectedSector: Int?
+    let selectedSubItem: Int?
+    let currentValues: [String]   // 각 sector의 현재 값 (8개) — 중심 컨텍스트에 표시
+    let subActiveStates: [Bool]?  // 활성 sector sub들의 현재 활성 상태 — sub 라벨 강조
+    let showHelp: Bool            // 처음 5회 동안만 하단에 사용법 한 줄 표시 (학습성)
+    let accentColor: Color
+
+    private let items: [(icon: String, label: String)] = [
+        ("🔦", "스포트라이트"),  // 0 — 12시
+        ("🔍", "돋보기"),         // 1 — 1:30
+        ("✨", "효과"),            // 2 — 3시 (그룹: 메인=빛 효과 토글, 서브=5개 효과)
+        ("🔘", "링 크기"),        // 3 — 4:30
+        ("🎨", "링 색"),          // 4 — 6시
+        ("⭕", "링 모양"),        // 5 — 7:30
+        ("📐", "좌표/각도"),      // 6 — 9시 (📐 좌표 + 🧭 드래그각도)
+        ("⌨", "키 입력"),         // 7 — 10:30
+    ]
+    // DESIGN.md "Radial" 토큰
+    private let deadRadius = Tokens.Radial.deadRadius
+    private let mainOuter = Tokens.Radial.mainOuter
+    private let subOuter = Tokens.Radial.subOuter
+
+    private var canvasSize: CGFloat { Tokens.Radial.canvasSize }
+
+    var body: some View {
+        ZStack {
+            // 시각 가이드 ring — 메인/서브 경계와 외곽 경계를 옅게 표시 (사용자가 영역 인지)
+            Circle()
+                .stroke(Tokens.Stroke.guideMedium, lineWidth: 1)
+                .frame(width: mainOuter * 2, height: mainOuter * 2)
+            Circle()
+                .stroke(Tokens.Stroke.guideWeak, lineWidth: 1)
+                .frame(width: subOuter * 2, height: subOuter * 2)
+
+            // 8개 메인 wedge (pie slice)
+            ForEach(0..<8, id: \.self) { i in
+                let centerAngleDeg = Double(i) * 45 - 90  // SwiftUI: 0°=오른쪽, +y=아래
+                let start = Angle.degrees(centerAngleDeg - 22.5)
+                let end = Angle.degrees(centerAngleDeg + 22.5)
+                let isActiveSector = selectedSector == i
+                let isMainSelected = isActiveSector && selectedSubItem == nil
+                let fill: Color = isMainSelected
+                    ? accentColor.opacity(0.9)
+                    : (isActiveSector ? accentColor.opacity(0.35) : Tokens.Surface.mainIdle)
+                PieWedge(startAngle: start, endAngle: end, innerRadius: deadRadius, outerRadius: mainOuter)
+                    .fill(fill)
+                    .overlay(
+                        PieWedge(startAngle: start, endAngle: end, innerRadius: deadRadius, outerRadius: mainOuter)
+                            .stroke(Tokens.Stroke.guideMedium, lineWidth: 1)
+                    )
+                    .animation(Tokens.Motion.select, value: isMainSelected)
+            }
+
+            // 메인 wedge 위에 아이콘 + 라벨
+            ForEach(0..<8, id: \.self) { i in
+                let centerAngleDeg = Double(i) * 45 - 90
+                let r = (deadRadius + mainOuter) / 2
+                let rad = centerAngleDeg * .pi / 180
+                VStack(spacing: 2) {
+                    Text(items[i].icon).font(Tokens.Text.icon)
+                    Text(items[i].label)
+                        .font(Tokens.Text.captionSmall)
+                        .foregroundColor(.white)
+                }
+                .offset(x: cos(rad) * r, y: sin(rad) * r)
+            }
+
+            // 서브 있는 sector의 외곽 호(arc) — 활성 sector는 진한 accent로, 비활성은 옅은 흰색으로 위계 차이.
+            ForEach(0..<8, id: \.self) { i in
+                let hasSub = (CursorSettings.RadialMenuItem(rawValue: i)?.subCount ?? 0) > 0
+                if hasSub {
+                    let centerAngleDeg = Double(i) * 45 - 90
+                    let start = Angle.degrees(centerAngleDeg - 22.5)
+                    let end = Angle.degrees(centerAngleDeg + 22.5)
+                    let isActive = selectedSector == i
+                    ArcStroke(startAngle: start, endAngle: end, radius: mainOuter - 1.5)
+                        .stroke(isActive ? accentColor.opacity(0.95) : Tokens.Stroke.guideStrong,
+                                lineWidth: isActive ? 3.0 : 1.5)
+                        .animation(Tokens.Motion.easeShort, value: isActive)
+                }
+            }
+
+            // 서브 wedge들 — 활성 sector에 서브가 있을 때 메인 sector 안에 균등 분할로 외부 확장
+            if let sec = selectedSector,
+               let item = CursorSettings.RadialMenuItem(rawValue: sec),
+               item.subCount > 0 {
+                let subLabels = item.subLabels
+                let mainCenterDeg = Double(sec) * 45 - 90
+                let subSpan = item.subSpan  // 항목 많을수록 확장(최대 120°) — 라벨 겹침 방지
+                let step = subSpan / Double(item.subCount)
+                let subStart = mainCenterDeg - subSpan/2
+                ForEach(0..<item.subCount, id: \.self) { i in
+                    let s = Angle.degrees(subStart + step * Double(i))
+                    let e = Angle.degrees(subStart + step * Double(i + 1))
+                    let isSubSelected = selectedSubItem == i
+                    let isCurrentSub = subActiveStates?[i] ?? false
+                    // 바탕색 3단계로 상태 표시:
+                    //   hover(곧 실행) → accent 0.9 (강조)
+                    //   current(현재 설정값/켜짐) → accent 0.40 (옅은 액센트)
+                    //   inactive → surface.subtle (어둠)
+                    let fill: Color = isSubSelected
+                        ? accentColor.opacity(0.9)
+                        : (isCurrentSub ? accentColor.opacity(0.40) : Tokens.Surface.subtle)
+                    PieWedge(startAngle: s, endAngle: e, innerRadius: mainOuter, outerRadius: subOuter)
+                        .fill(fill)
+                        .overlay(
+                            PieWedge(startAngle: s, endAngle: e, innerRadius: mainOuter, outerRadius: subOuter)
+                                .stroke(Tokens.Stroke.guideMedium, lineWidth: 1)
+                        )
+                        .animation(Tokens.Motion.select, value: isSubSelected)
+                        .animation(Tokens.Motion.easeShort, value: isCurrentSub)
+                    let subCenterDeg = subStart + step * (Double(i) + 0.5)
+                    let rSub = (mainOuter + subOuter) / 2
+                    let radSub = subCenterDeg * .pi / 180
+                    Text(subLabels[i])
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                        .offset(x: cos(radSub) * rSub, y: sin(radSub) * rSub)
+                }
+            }
+
+            // 중심(dead zone) 컨텍스트 — sector hover 시: 라벨+현재값 / dead zone 진입 시: ✕ 취소 affordance.
+            // dead zone release는 원래도 cancel(80pt 안전선 미달)이지만, 명시 표시 없으면 사용자가 알기 어려움.
+            // ESC/modifier release와 별개의 시각적 cancel 단서.
+            if let sec = selectedSector {
+                VStack(spacing: 1) {
+                    Text(items[sec].icon).font(Tokens.Text.iconCenter)
+                    Text(items[sec].label)
+                        .font(Tokens.Text.labelTiny)
+                        .foregroundColor(Tokens.Stroke.textActive)
+                        .lineLimit(1)
+                    Text(currentValues[sec])
+                        .font(.system(size: 8, weight: .medium))
+                        .foregroundColor(Tokens.Stroke.textMuted)
+                        .lineLimit(1)
+                }
+                .transition(.opacity)
+                .animation(Tokens.Motion.easeMicro, value: selectedSector)
+            } else {
+                VStack(spacing: 1) {
+                    Text("✕")
+                        .font(.system(size: 24, weight: .light))
+                        .foregroundColor(Tokens.Stroke.textActive)
+                    Text("닫기")
+                        .font(Tokens.Text.labelTiny)
+                        .foregroundColor(Tokens.Stroke.textMuted)
+                }
+                .transition(.opacity)
+            }
+
+            // 헬프 텍스트 — 처음 5회 동안만 메뉴 외곽 아래에 사용법 한 줄 (학습성 보조).
+            if showHelp {
+                Text("방향 이동 · 클릭 실행 · ⌃⌥, 또는 ESC 닫기")
+                    .font(Tokens.Text.hint)
+                    .foregroundColor(.white.opacity(0.75))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(Tokens.Surface.veil))
+                    .offset(y: subOuter + 18)
+            }
+        }
+        .frame(width: canvasSize, height: canvasSize)
+        .position(center)
+        .allowsHitTesting(false)
+        .transition(.opacity)  // cursor 위치에서 그 자리 페이드인 (scale은 frame 중심 anchor 때문에 화면 가운데에서 이동하는 느낌)
+    }
+}
+
+/// 호(arc) stroke — 서브 있는 sector의 외곽 강조선용.
+struct ArcStroke: Shape {
+    let startAngle: Angle
+    let endAngle: Angle
+    let radius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        var p = Path()
+        p.addArc(center: c, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
+        return p
+    }
+}
+
+/// 도넛 부채꼴 — 두 동심원 사이의 sector 영역. radial menu pie wedge용.
+struct PieWedge: Shape {
+    let startAngle: Angle
+    let endAngle: Angle
+    let innerRadius: CGFloat
+    let outerRadius: CGFloat
+
+    func path(in rect: CGRect) -> Path {
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        var path = Path()
+        path.addArc(center: c, radius: outerRadius, startAngle: startAngle, endAngle: endAngle, clockwise: false)
+        path.addArc(center: c, radius: innerRadius, startAngle: endAngle, endAngle: startAngle, clockwise: true)
+        path.closeSubpath()
+        return path
+    }
+}
+
+// MARK: - 화면 좌표 인스펙터
+
+/// ⌃⌥I 토글로 활성. cursor 우하단에 Quartz(top-left) 시스템 좌표 라벨.
+/// 화면 캡처 좌표·디자인 도구 좌표계와 일치 — 디자이너·개발자 디버깅용.
+struct InspectorView: View {
+    let position: CGPoint
+    let quartzGlobal: CGPoint
+
+    var body: some View {
+        Text("(\(Int(quartzGlobal.x)), \(Int(quartzGlobal.y)))")
+            .font(Tokens.Text.mono)
+            .foregroundColor(.white)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(Tokens.Surface.panel))
+            .offset(x: 36, y: 28)  // cursor 우하단 — 드래그 각도 라벨(우상단)과 충돌 회피
+            .position(position)
+            .allowsHitTesting(false)
     }
 }
 

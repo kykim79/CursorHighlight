@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [0.5.11] — 2026-05-30
+
+### Added
+
+- **Radial Menu (⌃⌥,)** — 마우스 커서 위치에 8 sector ring 메뉴. 메뉴 활성 중 sub 클릭으로 여러 효과/설정을 연속 토글 가능. 닫기: ⌃⌥, 다시 / ESC / dead zone(✕) 클릭. 메뉴 영역(subOuter 230pt) 바깥에선 모든 강조 해제 — 실수 클릭 보호.
+  - 8 sector: 🔦 스포트라이트 / 🔍 돋보기 / ✨ 효과 / 🔘 링크기 / 🎨 링색 / ⭕ 링모양 / 📐 좌표/각도 / ⌨ 키 입력
+  - ✨ 효과 sub 4종 (글로우·트레일·정지펄스·코멧)
+  - 📐 좌표/각도 sub 2종 (좌표 표시·드래그각도) — 위치/방향 라벨 카테고리로 묶음
+  - 거리 토큰: dead 50 / mainOuter 150 / subOuter 230 / edgeClamp 240
+  - 현재 active 상태를 **wedge 바탕색**으로 표시 (accent 40%) + 중앙 컨텍스트에 "n/m 켜짐" / 현재값 동시 노출
+  - 화면 가장자리 clamp — cursor가 모서리 가까이여도 메뉴가 잘리지 않음
+- **인스펙터 (⌃⌥I)** — cursor 옆에 시스템 좌표(Quartz top-left) 라벨. 디자인/개발 디버깅용. radial menu 📐 sub로도 접근.
+- **드래그 거리 라벨** — 드래그 각도 라벨에 거리(pt) 동시 표시.
+- **DESIGN.md + DesignTokens.swift** — 색/spacing/corner radius/모션/radial 거리/notification 포맷을 토큰화. RadialMenuView·SpotlightView·KeystrokeDisplayView·InspectorView가 하드코딩 대신 `Tokens.*` 참조. 새 효과 추가 시 일관성 baseline.
+
+### Changed
+
+- **MouseEventMonitor** `.listenOnly` → `.defaultTap`. 평소엔 통과시키되 radial menu 활성 중에만 좌클릭 소비 → underlying app으로 누수 방지.
+- **드래그 컴맷 테일 → 드래그 코멧 테일** — 환경설정 라벨 오타 수정 + Localizable.xcstrings 동기화.
+
 ## [0.5.10] — 2026-05-30
 
 ### Fixed

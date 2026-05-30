@@ -231,7 +231,7 @@ private struct BehaviorTab: View {
                 Toggle("스크롤 인디케이터", isOn: $settings.isScrollIndicatorEnabled)
                 Toggle("커서 트레일", isOn: $settings.isTrailEnabled)
                 Toggle("드래그 앵커 라인 (100pt 또는 1초 이상 드래그 시 자동 표시)", isOn: $settings.isAnchoredLineEnabled)
-                Toggle("드래그 컴맷 테일 (드래그 중 cursor 뒤 streak)", isOn: $settings.isCometTailEnabled)
+                Toggle("드래그 코멧 테일 (드래그 중 cursor 뒤 streak)", isOn: $settings.isCometTailEnabled)
                 Toggle("드래그 각도 라벨 (도면·일러스트레이션용)", isOn: $settings.isDragAngleLabelEnabled)
                 Toggle("우클릭에 링 색상 적용", isOn: $settings.rightClickUsesRingColor)
                 Toggle("트랙패드 제스처 효과 (4핀치/3·4 스와이프 — 실험적)", isOn: $settings.isTrackpadGesturesEnabled)
@@ -371,6 +371,16 @@ private struct ShortcutsTab: View {
 
             Section("모양 순환") {
                 Text("⌃⌥7 — 다음 모양으로 (원형 → 둥근 사각형 → 마름모)")
+                    .font(.caption).foregroundColor(.secondary)
+            }
+
+            Section("화면 좌표 인스펙터") {
+                Text("⌃⌥I — 좌표 인스펙터 켜기/끄기 (cursor 옆에 (x, y) Quartz 좌표 표시)")
+                    .font(.caption).foregroundColor(.secondary)
+            }
+
+            Section("Radial Menu") {
+                Text("⌃⌥Space (누름 유지) — 8개 메뉴가 cursor 자리에 펼쳐짐. 누른 채 마우스를 살짝 움직여 방향 선택, 떼면 그 항목 실행 (중심 근처에서 떼면 취소)")
                     .font(.caption).foregroundColor(.secondary)
             }
 

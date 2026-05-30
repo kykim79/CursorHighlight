@@ -140,6 +140,111 @@ final class CursorSettings: ObservableObject {
         }
     }
 
+    /// Radial Menu (⌃⌥Space) 8개 메인 sector — rawValue = sector index (12시=0, 시계방향 45°).
+    /// 서브 라벨은 marking menu fan에 표시되고, 없으면 메인 액션(토글/cycle)만 실행.
+    enum RadialMenuItem: Int, CaseIterable {
+        case spotlight = 0   // 12시
+        case magnifier       // 1:30
+        case glow            // 3시
+        case ringSize        // 4:30
+        case color           // 6시
+        case ringShape       // 7:30
+        case inspector       // 9시
+        case keystroke       // 10:30
+
+        var subCount: Int { subLabels.count }
+
+        /// 현재 설정/상태값을 짧게 표현 (radial menu 중심에 "라벨 / 값"으로 표시).
+        @MainActor
+        func currentValue(settings: CursorSettings, runtime: CursorRuntimeState) -> String {
+            switch self {
+            case .spotlight: return runtime.isSpotlightActive ? "켜짐 · \(Int(settings.spotlightRadius))pt" : "꺼짐"
+            case .magnifier: return runtime.isMagnifierActive ? "켜짐 · \(String(format: "%.1f", settings.magnifierZoom))×" : "꺼짐"
+            case .glow:
+                // ✨ 효과는 독립 토글 묶음이라 단일 ON/OFF 부정확 — 켜진 개수 노출
+                let on = [settings.isGlowEnabled, settings.isTrailEnabled,
+                          settings.isIdlePulseEnabled, settings.isCometTailEnabled].filter { $0 }.count
+                return "\(on)/4 켜짐"
+            case .ringSize:  return settings.ringSize.label
+            case .color:     return settings.ringColor.label
+            case .ringShape: return settings.ringShape.label
+            case .inspector:
+                // 📐 좌표/각도는 2개 독립 토글 묶음
+                let on = [runtime.isInspectorActive, settings.isDragAngleLabelEnabled].filter { $0 }.count
+                return "\(on)/2 켜짐"
+            case .keystroke: return settings.isKeystrokeEnabled ? "켜짐 · \(Int(settings.keystrokeTimeout))초" : "꺼짐"
+            }
+        }
+
+        /// 서브 항목 i가 현재 설정/상태와 일치하는가 — radial menu에서 "지금 어떤 게 활성인지" 시각 강조용.
+        /// 토글류(spotlight/magnifier/keystroke의 sub 0, glow의 모든 sub)는 isEnabled 직접 반영,
+        /// 값 선택류는 현재 값과 sub i의 값이 일치할 때 true.
+        @MainActor
+        func isSubCurrent(at i: Int, settings: CursorSettings, runtime: CursorRuntimeState) -> Bool {
+            switch self {
+            case .spotlight:
+                if i == 0 { return runtime.isSpotlightActive }
+                let radii: [CGFloat] = [60, 100, 140, 180, 220]
+                guard i - 1 < radii.count else { return false }
+                return abs(settings.spotlightRadius - radii[i - 1]) < 0.5
+            case .magnifier:
+                if i == 0 { return runtime.isMagnifierActive }
+                let zooms: [Double] = [1.5, 2, 2.5, 3, 4]
+                guard i - 1 < zooms.count else { return false }
+                return abs(settings.magnifierZoom - zooms[i - 1]) < 0.05
+            case .glow:
+                switch i {
+                case 0: return settings.isGlowEnabled
+                case 1: return settings.isTrailEnabled
+                case 2: return settings.isIdlePulseEnabled
+                case 3: return settings.isCometTailEnabled
+                default: return false
+                }
+            case .ringSize:
+                let cases = RingSize.allCases
+                return i < cases.count && cases[i] == settings.ringSize
+            case .color:
+                let cases = RingColor.allCases.filter { $0 != .custom }
+                return i < cases.count && cases[i] == settings.ringColor
+            case .ringShape:
+                let cases = RingShape.allCases
+                return i < cases.count && cases[i] == settings.ringShape
+            case .keystroke:
+                if i == 0 { return settings.isKeystrokeEnabled }
+                let times: [Double] = [1, 2, 4, 8]
+                guard i - 1 < times.count else { return false }
+                return abs(settings.keystrokeTimeout - times[i - 1]) < 0.05
+            case .inspector:
+                switch i {
+                case 0: return runtime.isInspectorActive
+                case 1: return settings.isDragAngleLabelEnabled
+                default: return false
+                }
+            }
+        }
+
+        /// 서브 fan이 차지하는 각도(°). 4개 이하면 메인 sector 영역(45°) 그대로,
+        /// 5개부터는 항목당 +12° 확장(최대 120°)해 라벨 겹침 방지 — 옆 sector 침범하지만
+        /// 활성 sector만 서브 표시라 시각 충돌 없음.
+        var subSpan: Double {
+            let n = subCount
+            return n <= 4 ? 45.0 : min(120.0, 45.0 + Double(n - 4) * 12.0)
+        }
+
+        var subLabels: [String] {
+            switch self {
+            case .spotlight: return ["토글", "60pt", "100pt", "140pt", "180pt", "220pt"]
+            case .magnifier: return ["토글", "1.5×", "2×", "2.5×", "3×", "4×"]
+            case .glow:      return ["💡 글로우", "💨 트레일", "💫 정지펄스", "☄️ 코멧"]
+            case .ringSize:  return RingSize.allCases.map(\.label)
+            case .color:     return RingColor.allCases.filter { $0 != .custom }.map(\.label)
+            case .ringShape: return RingShape.allCases.map(\.label)
+            case .inspector: return ["📐 좌표", "🧭 드래그각도"]
+            case .keystroke: return ["토글", "1초", "2초", "4초", "8초"]
+            }
+        }
+    }
+
     enum RingShape: String, CaseIterable, Identifiable {
         case circle, squircle, rhombus
         var id: String { rawValue }

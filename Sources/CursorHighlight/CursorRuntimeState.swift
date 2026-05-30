@@ -16,6 +16,13 @@ final class CursorRuntimeState: ObservableObject {
     // MARK: - Spotlight / Magnifier
     @Published var isSpotlightActive: Bool = false
     @Published var isMagnifierActive: Bool = false
+    @Published var isInspectorActive: Bool = false  // ⌃⌥I 토글 — cursor 옆 시스템 좌표(Quartz) 라벨 표시
+    @Published var isRadialMenuActive: Bool = false  // ⌃⌥Space hold — radial menu 표시 중
+    @Published var radialMenuCenter: CGPoint = .zero  // hold 시작 시 cursor 위치 고정 (Cocoa)
+    @Published var radialMenuSelectedSector: Int? = nil  // 0~7 강조된 sector, nil=dead zone(cancel)
+    @Published var radialMenuSelectedSubItem: Int? = nil  // 서브 ring(≥150pt) 도달 시 활성, 메인 영역이면 nil
+    @Published var isRadialMenuVisible: Bool = false  // 150ms hold 후만 true (marking mode — 빠른 release면 시각 안 띄우고 실행)
+    @Published var radialMenuShowHelp: Bool = false  // 첫 5회 hold 동안만 메뉴 하단에 사용법 한 줄 표시
     @Published var magnifierImage: CGImage?
     @Published var hasScreenRecordingPermission: Bool = false
 
