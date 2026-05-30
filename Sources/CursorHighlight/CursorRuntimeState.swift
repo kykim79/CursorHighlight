@@ -16,6 +16,7 @@ final class CursorRuntimeState: ObservableObject {
     // MARK: - Spotlight / Magnifier
     @Published var isSpotlightActive: Bool = false
     @Published var isMagnifierActive: Bool = false
+    @Published var isLaserPointerActive: Bool = false  // ⌃⌥P 토글 — 활성 시 일반 링 숨기고 빨간 점만 표시 (발표·녹화용)
     @Published var magnifierImage: CGImage?
     @Published var hasScreenRecordingPermission: Bool = false
 

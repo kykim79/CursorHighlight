@@ -88,6 +88,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastMoveTime: Date = .init()
     private var idleHideWorkItem: DispatchWorkItem?
     private var glowEnhanceWorkItem: DispatchWorkItem?
+    private var idlePulseWorkItem: DispatchWorkItem?
     private var lastPosUpdateTime: TimeInterval = 0
     private var lastTrailSampleTime: TimeInterval = 0
 
@@ -113,6 +114,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // 트랙패드 제스처 (실험적, 비공식 API) — 토글 변화 구독.
     private var trackpadGestureCancellable: AnyCancellable?
     private var autoKeystrokeCancellable: AnyCancellable?
+    private var laserCursorCancellable: AnyCancellable?
+
+    /// 빨간 점 NSCursor — 레이저 활성 시 시스템 cursor를 이걸로 덮어씀.
+    /// 본래 `NSCursor.set()`은 자기 앱 윈도우 cursor rect 안에서만 적용이라 cross-app 보장 X였지만,
+    /// macOS 26.x에서 우리 앱 active + 매 mouseMove마다 재 set 호출 + didResignActive 시 재 activate
+    /// 조합으로 cross-app으로 동작 확인됨. CGDisplayHideCursor 방식과 달리 cursor "모양" 변경이라
+    /// visibility 토글이 없어 클릭 시 깜빡임도 없다.
+    private lazy var laserCursor: NSCursor = {
+        let size: CGFloat = 18
+        let image = NSImage(size: NSSize(width: size, height: size))
+        image.lockFocus()
+        NSColor.red.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: size, height: size)).fill()
+        image.unlockFocus()
+        return NSCursor(image: image, hotSpot: NSPoint(x: size/2, y: size/2))
+    }()
 
     // 가장 최근 트랙패드 swipe 발생 시점 (gesture detect 시점, fire 시점 아님).
     // polling이 자기 firedAt < latestSwipeFiredAt이면 stale (=더 새 swipe 이미 있음) → skip.
@@ -299,6 +316,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         autoKeystrokeCancellable = settings.objectWillChange
             .receive(on: RunLoop.main)
             .sink { [weak self] in self?.evaluateAutoKeystroke() }
+
+        // 레이저 포인터 활성 시 시스템 cursor 숨김 — 빨간 점만 보이게(자연스러운 레이저 느낌).
+        // CGDisplayHideCursor는 "active context"를 가진 앱이 호출해야 시스템이 적용한다(Apple docs).
+        // LSUIElement 앱은 평소 active가 아니므로 NSApp.activate로 context를 강제 확보한다.
+        // CGDisplayHideCursor/ShowCursor는 reference count라 ON/OFF 짝 맞아야 한다.
+        // dropFirst로 초기 emission(false) 무시, 실제 토글에서만 호출.
+        // 레이저 모드 — 시스템 cursor를 빨간 점으로 변경(cross-app NSCursor.set).
+        laserCursorCancellable = runtime.$isLaserPointerActive
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] active in
+                guard let self else { return }
+                if active {
+                    NSApp.activate(ignoringOtherApps: true)
+                    self.laserCursor.set()
+                } else {
+                    NSCursor.arrow.set()
+                }
+            }
+
+        // deactivate되면 cursor 모양 잃을 수 있어 재 activate + set 시도.
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self, self.runtime.isLaserPointerActive else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            self.laserCursor.set()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -532,6 +579,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         lastMousePos = pos
         lastMoveTime = Date()
+        // 레이저 모드 — 다른 앱이 자기 cursor(I-beam 등)를 set하면 우리 빨간 cursor가 덮여버리므로
+        // 매 mouseMove에서 재 set 호출. NSCursor.set은 main thread 안전 (이 콜백이 main).
+        if runtime.isLaserPointerActive { laserCursor.set() }
 
         if !runtime.isCursorVisible { runtime.isCursorVisible = true }
         if runtime.glowMultiplier > 1.0 { runtime.glowMultiplier = 1.0 }
@@ -569,6 +619,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func scheduleIdleAndGlow() {
         idleHideWorkItem?.cancel()
         glowEnhanceWorkItem?.cancel()
+        idlePulseWorkItem?.cancel()
 
         let hide = DispatchWorkItem { [weak self] in
             guard let self else { return }
@@ -587,6 +638,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         glowEnhanceWorkItem = glow
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: glow)
+
+        // 정지 펄스 — glow와 동시(1.5초) 트리거. 1회만 발생 (반복 없음).
+        let pulse = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            guard self.settings.isIdlePulseEnabled, self.runtime.isCursorVisible,
+                  !self.runtime.isLaserPointerActive, !self.runtime.isDragging else { return }
+            self.effects.addIdlePulseEffect(at: self.runtime.cursorPosition)
+        }
+        idlePulseWorkItem = pulse
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: pulse)
     }
 
     // MARK: - 마우스·드래그·스크롤 이벤트 라우팅

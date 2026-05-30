@@ -227,6 +227,7 @@ private struct BehaviorTab: View {
                             .monospacedDigit().frame(width: 44, alignment: .trailing)
                     }
                 }
+                Toggle("정지 시 펄스 강조 (1.5초 멈추면 1회 확장 표시)", isOn: $settings.isIdlePulseEnabled)
                 Toggle("스크롤 인디케이터", isOn: $settings.isScrollIndicatorEnabled)
                 Toggle("커서 트레일", isOn: $settings.isTrailEnabled)
                 Toggle("드래그 앵커 라인 (100pt 또는 1초 이상 드래그 시 자동 표시)", isOn: $settings.isAnchoredLineEnabled)
@@ -363,8 +364,19 @@ private struct ShortcutsTab: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("⌃⌥1 노란색 · ⌃⌥2 빨간색 · ⌃⌥3 파란색")
                     Text("⌃⌥4 초록색 · ⌃⌥5 하늘색 · ⌃⌥6 보라색")
+                    Text("⌃⌥0 다음 색상으로 순환")
                 }
                 .font(.caption).foregroundColor(.secondary)
+            }
+
+            Section("모양 순환") {
+                Text("⌃⌥7 — 다음 모양으로 (원형 → 둥근 사각형 → 마름모)")
+                    .font(.caption).foregroundColor(.secondary)
+            }
+
+            Section("레이저 포인터") {
+                Text("오른쪽 ⌥ (단독 누름 유지) — 누르고 있는 동안 레이저 포인터, 떼면 자동 복귀 (한 손 발표용)")
+                    .font(.caption).foregroundColor(.secondary)
             }
 
             Section("돋보기") {

@@ -38,6 +38,7 @@ final class CursorSettings: ObservableObject {
     @Persisted("isAnchoredLineEnabled", default: true) var isAnchoredLineEnabled: Bool  // #17 — 자동 임계 기반, 평소 비-intrusive
     @Persisted("isCometTailEnabled", default: false) var isCometTailEnabled: Bool  // #18 — 드래그 streak, 임팩트 커서 default off
     @Persisted("isDragAngleLabelEnabled", default: false) var isDragAngleLabelEnabled: Bool  // 드래그 중 각도 표시 (도면용 — default off)
+    @Persisted("isIdlePulseEnabled", default: true) var isIdlePulseEnabled: Bool  // 1.5초 정지 시 1회 펄스 — "여기 보세요" 자연스러운 강조
     @Persisted("isTrackpadGesturesEnabled", default: false) var isTrackpadGesturesEnabled: Bool  // 4핀치/3·4 swipe 효과 — 비공식 API(MultitouchSupport), default off
 
     // 낯선 외장 모니터(신뢰 목록에 없는) 연결 시 키스트로크 표시 자동 ON — 발표·회의 상황 감지.

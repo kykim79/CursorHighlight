@@ -43,13 +43,21 @@ struct OverlayContentView: View {
                 )
             }
 
-            // 커서 링
-            if cursorOnScreen && runtime.isCursorVisible {
+            // 커서 링 — 레이저 포인터 모드면 숨기고 빨간 점으로 대체
+            if cursorOnScreen && runtime.isCursorVisible && !runtime.isLaserPointerActive {
                 CursorRingView(
                     position: localPos,
                     appearance: RingAppearance(settings: settings, effectiveColor: effectiveColor),
                     motion: RingMotion(runtime: runtime)
                 )
+            }
+            // 레이저 모드는 시스템 cursor 자체를 빨간 점으로 변경(AppDelegate의 NSCursor.set) — overlay 그리기 없음.
+
+            // 정지 펄스 — 1.5초 정지 시 1회 ring shape 확장 fade
+            ForEach(effects.idlePulseEffects, id: \.id) { effect in
+                if screenFrame.contains(effect.position) {
+                    IdlePulseView(position: toLocal(effect.position), color: effectiveColor, ringShape: settings.ringShape, speed: speed)
+                }
             }
 
             // 드래그 각도 라벨 — 도면/일러스트레이션용. cursor 우상단 작은 라벨.
@@ -847,6 +855,33 @@ struct ExpandingRing: View {
             .onAppear {
                 withAnimation(.easeOut(duration: 0.7 * speed).delay(delay)) { scale = 1.8 }
                 withAnimation(.easeIn(duration: 0.5 * speed).delay(delay + 0.35 * speed)) { opacity = 0 }
+            }
+    }
+}
+
+// MARK: - 정지 펄스
+
+/// 정지 펄스 — 1.5초 정지 시 1회 확장 fade. 현재 ring 색·모양을 따라 자연스럽게.
+struct IdlePulseView: View {
+    let position: CGPoint
+    let color: Color
+    let ringShape: CursorSettings.RingShape
+    let speed: Double
+    @State private var scale: CGFloat = 0.85
+    @State private var opacity: Double = 0.7
+
+    var body: some View {
+        ringShape.anyShape
+            .stroke(color, lineWidth: 2.5)
+            .frame(width: 70, height: 70)
+            .scaleEffect(scale)
+            .opacity(opacity)
+            .position(position)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.8 * speed)) {
+                    scale = 1.7
+                    opacity = 0
+                }
             }
     }
 }

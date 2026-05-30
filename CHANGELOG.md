@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.5.8] — 2026-05-30
+
+### Added
+
+- **링 모양 순환 단축키 (⌃⌥7)** — 누를 때마다 원형 → 둥근 사각형 → 마름모로 순환. 색 단축키(⌃⌥1~6, ⌃⌥0 cycle)와 같은 그룹.
+- **정지 펄스** — 마우스가 1.5초 멈춰 있으면 현재 ring shape·색으로 1회 외곽 확장 fade. "여기 보세요" 자연스러운 강조 동작. 환경설정 → 동작 → "정지 시 펄스 강조"로 OFF 가능 (default ON).
+- **레이저 포인터 (오른쪽 ⌥ hold)** — 오른쪽 Option 키를 단독으로 누르고 있는 동안 시스템 cursor가 빨간 점으로 바뀌고, 떼면 즉시 원래 cursor로 복귀. 발표·녹화 중 한 손으로 호출 가능, 다른 ⌃⌥ 단축키와 충돌 없음.
+  - 구현: `NSCursor.set()` cross-app + 매 mouseMove 재 set + `didResignActiveNotification`에서 재 activate 조합으로, macOS 26.x에서 cursor 모양만 변경(visibility 토글 없음)이라 클릭 시 깜빡임도 없고 `flagsChanged` 이벤트 기반이라 auto-repeat 소리도 없음.
+
 ## [0.5.7] — 2026-05-29
 
 ### Fixed

@@ -13,6 +13,7 @@ final class EffectsState: ObservableObject {
     @Published var doubleClickEffects: [DoubleClickEffect] = []
     @Published var middleClickEffects: [MiddleClickEffect] = []
     @Published var shakeEffects: [ShakeEffect] = []
+    @Published var idlePulseEffects: [IdlePulseEffect] = []
     @Published var scrollEffects: [ScrollEffect] = []
     @Published var trailPoints: [TrailPoint] = []
     @Published var clipboardEffects: [ClipboardEffect] = []
@@ -29,6 +30,9 @@ final class EffectsState: ObservableObject {
         let id = UUID(); let position: CGPoint
     }
     struct ShakeEffect: Identifiable {
+        let id = UUID(); let position: CGPoint
+    }
+    struct IdlePulseEffect: Identifiable {
         let id = UUID(); let position: CGPoint
     }
     /// magnitude: 스크롤 양 (트랙패드 1지손 ~5, 휠 ~10, 강한 swipe ~50+). 화살표 크기 비례용.
@@ -117,6 +121,16 @@ final class EffectsState: ObservableObject {
     /// 외부에서 즉시 제거 — Space 전환 감지로 immediate fire 무효화하고 재발사할 때.
     func removeTrackpadGesture(id: UUID) {
         trackpadGestureEffects.removeAll { $0.id == id }
+    }
+
+    /// 정지 펄스 — 1.5초 정지 시 AppDelegate가 트리거. 0.9초 후 자동 제거(애니메이션 완료 시점).
+    func addIdlePulseEffect(at point: CGPoint) {
+        let effect = IdlePulseEffect(position: point)
+        idlePulseEffects.append(effect)
+        Task {
+            try? await Task.sleep(for: .milliseconds(900))
+            idlePulseEffects.removeAll { $0.id == effect.id }
+        }
     }
 
     func addClipboardEffect(at point: CGPoint, emoji: String) {

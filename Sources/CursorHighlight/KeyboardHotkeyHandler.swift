@@ -87,7 +87,7 @@ final class KeyboardHotkeyHandler {
         guard AXIsProcessTrusted() else { return }
         guard eventTap == nil else { return }
 
-        let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
+        let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.flagsChanged.rawValue)
 
         let retained = Unmanaged.passRetained(self)
         selfPtr = retained.toOpaque()
@@ -123,6 +123,22 @@ final class KeyboardHotkeyHandler {
                     }
                     // 우리 단축키면 삼켜서(nil) 포커스 앱(브라우저 등)으로 새지 않게 함.
                     return consume ? nil : Unmanaged.passUnretained(event)
+
+                case .flagsChanged:
+                    // 레이저 포인터 hold — Right Option 단독 hold 시 활성. 한 손으로 가능, auto-repeat 없어 소리 안 남.
+                    let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+                    if keyCode == 61 {  // Right Option (Left Option은 58)
+                        let flagsRaw = event.flags.rawValue
+                        let rightAltDown = (flagsRaw & 0x40) != 0   // NX_DEVICERALTKEYMASK
+                        let leftAltDown  = (flagsRaw & 0x20) != 0   // NX_DEVICELALTKEYMASK — 다른 modifier 검사용
+                        let hasOtherMods = leftAltDown
+                            || event.flags.contains(.maskCommand)
+                            || event.flags.contains(.maskShift)
+                            || event.flags.contains(.maskControl)
+                        let isPressed = rightAltDown && !hasOtherMods
+                        DispatchQueue.main.async { h.setLaserActive(isPressed) }
+                    }
+                    return Unmanaged.passUnretained(event)
 
                 default:
                     return Unmanaged.passUnretained(event)
@@ -165,6 +181,14 @@ final class KeyboardHotkeyHandler {
         eventTap = nil
         runLoopSource = nil
         tapThread = nil
+    }
+
+    /// Right Option hold 상태 변화 — flagsChanged callback에서 호출.
+    private func setLaserActive(_ active: Bool) {
+        guard let runtime else { return }
+        if active != runtime.isLaserPointerActive {
+            runtime.isLaserPointerActive = active
+        }
     }
 
     private func handle(_ event: NSEvent) {
@@ -222,6 +246,21 @@ final class KeyboardHotkeyHandler {
                 let next = cases[(currentIndex + 1) % cases.count]
                 settings.ringColor = next
                 keystrokeOverlay.showStatusNotification("🎨 \(next.label)")
+                return
+            }
+            // ⌃⌥7 모양 순환 — 원형 → 둥근 사각형 → 마름모
+            if event.keyCode == 26 {  // "7" key
+                let cases = CursorSettings.RingShape.allCases
+                let currentIndex = cases.firstIndex(of: settings.ringShape) ?? 0
+                let next = cases[(currentIndex + 1) % cases.count]
+                settings.ringShape = next
+                let icon: String
+                switch next {
+                case .circle:   icon = "⭕"
+                case .squircle: icon = "🟦"
+                case .rhombus:  icon = "🔶"
+                }
+                keystrokeOverlay.showStatusNotification("\(icon) \(next.label)")
                 return
             }
         }
