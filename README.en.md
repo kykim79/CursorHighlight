@@ -18,6 +18,8 @@ macOS menu bar app. Visually emphasizes the mouse cursor for screen recording, p
 - **Keystroke Display** — show pressed shortcuts as bottom overlay. Optional auto-enable when an unknown external monitor (meeting room, etc.) connects (trusted monitors excluded)
 - **Shake Detection** — wave the mouse to flash SOS ring at the cursor
 - **Screenshot Mode** — menu bar toggle. Normally overlay window has `sharingType = .none` (so the magnifier doesn't re-capture itself), but you can flip it to `.readOnly` temporarily for external `screencapture`/OBS. Auto-OFF on app restart.
+- **Radial Menu (⌃⌥,)** — 8-sector menu at cursor position. Click to toggle effects/color/size/shape/magnifier/spotlight; menu stays open for quick multi-adjustments during a presentation. Currently active settings show with a faint accent background.
+- **Drawing Mode (⌃⌥D)** — on-screen annotation for presentations/screencasts. Free pen, straight line (Shift+drag), arrow (Opt+drag). Stroke color follows the ring color. ESC clears all shapes and exits.
 
 ## Shortcuts
 
@@ -37,6 +39,10 @@ All shortcuts use `⌃⌥` (Control + Option):
 | `⌃⌥5` | Cyan ring |
 | `⌃⌥6` | Purple ring |
 | `⌃⌥0` | Cycle to next ring color (quick change during presentation) |
+| `⌃⌥7` | Cycle to next ring shape (circle ↔ squircle ↔ rhombus) |
+| `⌃⌥I` | Inspector — show (x, y) system coordinates next to the cursor |
+| `⌃⌥,` | **Radial Menu** — 8-sector mouse menu. Click to toggle effects/color/size/shape/magnifier/spotlight instantly; menu stays open for multi-adjustments. ESC to close |
+| `⌃⌥D` | **Toggle Drawing Mode** — on-screen annotation. Drag=pen / **Shift**+drag=line / **Opt**+drag=arrow. ESC=clear+exit. Color follows current ring color |
 
 Some shortcuts are configurable in Preferences (menu bar → Preferences).
 
