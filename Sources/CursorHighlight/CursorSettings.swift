@@ -140,7 +140,7 @@ final class CursorSettings: ObservableObject {
         }
     }
 
-    /// Radial Menu (⌃⌥Space) 8개 메인 sector — rawValue = sector index (12시=0, 시계방향 45°).
+    /// Radial Menu (⌃⌥,) 8개 메인 sector — rawValue = sector index (12시=0, 시계방향 45°).
     /// 서브 라벨은 marking menu fan에 표시되고, 없으면 메인 액션(토글/cycle)만 실행.
     enum RadialMenuItem: Int, CaseIterable {
         case spotlight = 0   // 12시
@@ -152,7 +152,35 @@ final class CursorSettings: ObservableObject {
         case inspector       // 9시
         case keystroke       // 10:30
 
-        var subCount: Int { subLabels.count }
+        var subCount: Int { subItems.count }
+
+        /// 메인 sector SF Symbol — RadialMenuView 메인 wedge 및 중심 컨텍스트에 표시.
+        var icon: String {
+            switch self {
+            case .spotlight: return "flashlight.on.fill"
+            case .magnifier: return "plus.magnifyingglass"
+            case .glow:      return "sparkles"
+            case .ringSize:  return "circle.dashed"
+            case .color:     return "paintpalette.fill"
+            case .ringShape: return "square.on.circle"
+            case .inspector: return "ruler.fill"
+            case .keystroke: return "keyboard.fill"
+            }
+        }
+
+        /// 메인 sector 한글 라벨.
+        var label: String {
+            switch self {
+            case .spotlight: return "스포트라이트"
+            case .magnifier: return "돋보기"
+            case .glow:      return "효과"
+            case .ringSize:  return "링 크기"
+            case .color:     return "링 색"
+            case .ringShape: return "링 모양"
+            case .inspector: return "좌표/각도"
+            case .keystroke: return "키 입력"
+            }
+        }
 
         /// 현재 설정/상태값을 짧게 표현 (radial menu 중심에 "라벨 / 값"으로 표시).
         @MainActor
@@ -231,16 +259,52 @@ final class CursorSettings: ObservableObject {
             return n <= 4 ? 45.0 : min(120.0, 45.0 + Double(n - 4) * 12.0)
         }
 
-        var subLabels: [String] {
+        /// 서브 항목 — 아이콘(optional SF Symbol)이 있으면 라벨 앞에 렌더링.
+        /// 값 선택형 sub(spotlight/magnifier/ringSize/color/ringShape/keystroke)는 icon=nil — 순수 텍스트.
+        /// 카테고리형 sub(glow 효과 4종, inspector 좌표/각도 2종)은 SF Symbol로 시각 단서 제공.
+        struct SubItem {
+            let icon: String?
+            let label: String
+        }
+
+        var subItems: [SubItem] {
             switch self {
-            case .spotlight: return ["토글", "60pt", "100pt", "140pt", "180pt", "220pt"]
-            case .magnifier: return ["토글", "1.5×", "2×", "2.5×", "3×", "4×"]
-            case .glow:      return ["💡 글로우", "💨 트레일", "💫 정지펄스", "☄️ 코멧"]
-            case .ringSize:  return RingSize.allCases.map(\.label)
-            case .color:     return RingColor.allCases.filter { $0 != .custom }.map(\.label)
-            case .ringShape: return RingShape.allCases.map(\.label)
-            case .inspector: return ["📐 좌표", "🧭 드래그각도"]
-            case .keystroke: return ["토글", "1초", "2초", "4초", "8초"]
+            case .spotlight: return [
+                SubItem(icon: nil, label: "토글"),
+                SubItem(icon: nil, label: "60pt"),
+                SubItem(icon: nil, label: "100pt"),
+                SubItem(icon: nil, label: "140pt"),
+                SubItem(icon: nil, label: "180pt"),
+                SubItem(icon: nil, label: "220pt"),
+            ]
+            case .magnifier: return [
+                SubItem(icon: nil, label: "토글"),
+                SubItem(icon: nil, label: "1.5×"),
+                SubItem(icon: nil, label: "2×"),
+                SubItem(icon: nil, label: "2.5×"),
+                SubItem(icon: nil, label: "3×"),
+                SubItem(icon: nil, label: "4×"),
+            ]
+            case .glow: return [
+                SubItem(icon: "lightbulb.fill", label: "글로우"),
+                SubItem(icon: "wind",           label: "트레일"),
+                SubItem(icon: "target",         label: "정지펄스"),
+                SubItem(icon: "sparkle",        label: "코멧"),
+            ]
+            case .ringSize:  return RingSize.allCases.map { SubItem(icon: nil, label: $0.label) }
+            case .color:     return RingColor.allCases.filter { $0 != .custom }.map { SubItem(icon: nil, label: $0.label) }
+            case .ringShape: return RingShape.allCases.map { SubItem(icon: nil, label: $0.label) }
+            case .inspector: return [
+                SubItem(icon: "viewfinder",     label: "좌표"),
+                SubItem(icon: "arrow.up.right", label: "드래그각도"),
+            ]
+            case .keystroke: return [
+                SubItem(icon: nil, label: "토글"),
+                SubItem(icon: nil, label: "1초"),
+                SubItem(icon: nil, label: "2초"),
+                SubItem(icon: nil, label: "4초"),
+                SubItem(icon: nil, label: "8초"),
+            ]
             }
         }
     }

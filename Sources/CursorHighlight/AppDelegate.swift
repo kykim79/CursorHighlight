@@ -62,6 +62,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let runtime = CursorRuntimeState()
     let effects = EffectsState()
     let keystrokeOverlay = KeystrokeOverlayState()
+    let drawing = DrawingState()
 
     // MARK: - Services
     private var permissionsManager: PermissionsManager?
@@ -246,6 +247,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onScreenshotShortcut: { [weak self] in self?.handleScreenshotShortcut() },
             onMagnifierWithoutPermission: { [weak self] in self?.permissionsManager?.requestScreenRecordingPermission() }
         )
+        keyboardHotkeyHandler?.drawingState = drawing
         keyboardHotkeyHandler?.start()
 
         // 트랙패드 시스템 제스처 — 비공식 MultitouchSupport. 토글 ON일 때만 활성.
@@ -672,9 +674,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self.keyboardHotkeyHandler?.handleRadialMenuClick()
                     return
                 }
+                // 그리기 모드 — 새 도형 시작. 모디파이어로 도구 결정 (Shift=직선 / Opt=화살표 / 그 외 펜)
+                if self.drawing.isDrawingModeActive {
+                    let mods = NSEvent.modifierFlags
+                    let color = self.settings.ringColor == .custom
+                        ? self.settings.customRingColor
+                        : self.settings.ringColor.color
+                    self.drawing.startShape(at: self.runtime.cursorPosition, modifiers: mods, color: color)
+                    return
+                }
                 let pos = self.runtime.cursorPosition
                 self.effects.addClickEffect(at: pos, isRight: false, isDouble: isDouble, animationSpeed: self.settings.animationSpeed.multiplier)
                 self.runtime.triggerClickPulse(isDouble: isDouble)
+            }
+            monitor?.onDrawingDrag = { [weak self] _ in
+                guard let self else { return }
+                self.drawing.updateShape(to: self.runtime.cursorPosition)
+            }
+            monitor?.onDrawingRelease = { [weak self] _ in
+                guard let self else { return }
+                self.drawing.endShape()
             }
             monitor?.onRightClick = { [weak self] _ in
                 guard let self else { return }
@@ -730,7 +749,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupOverlays() {
         overlays.forEach { $0.close() }
         overlays = NSScreen.screens.map {
-            OverlayWindowController(screen: $0, settings: settings, runtime: runtime, effects: effects, keystroke: keystrokeOverlay)
+            OverlayWindowController(screen: $0, settings: settings, runtime: runtime, effects: effects, keystroke: keystrokeOverlay, drawing: drawing)
         }
         primaryScreenHeight = NSScreen.screens.first?.frame.height ?? 0
     }

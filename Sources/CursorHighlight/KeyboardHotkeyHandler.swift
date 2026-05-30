@@ -23,7 +23,8 @@ final class KeyboardHotkeyHandler {
     private weak var runtime: CursorRuntimeState?
     private weak var effects: EffectsState?
     private weak var keystrokeOverlay: KeystrokeOverlayState?
-    weak var mouseMonitor: MouseEventMonitor?  // radial menu 활성 동안 좌클릭 소비 제어
+    weak var mouseMonitor: MouseEventMonitor?  // radial menu / 그리기 활성 동안 좌클릭 소비 제어
+    weak var drawingState: DrawingState?       // ⌃⌥D 토글, ESC clear
     private let onScreenshotShortcut: () -> Void
     private let onMagnifierWithoutPermission: () -> Void
 
@@ -79,8 +80,9 @@ final class KeyboardHotkeyHandler {
     private func updateConsumableCodes() {
         guard let settings else { return }
         // 고정: 줌(24,27), 색상 1~6(18,19,20,21,23,22), 색상순환(29),
-        //       모양순환(26=7), 인스펙터(34=I), Radial Menu(43=콤마 — ⌘, 설정 컨벤션과 의미 일치)
-        var codes: Set<Int64> = [24, 27, 18, 19, 20, 21, 23, 22, 29, 26, 34, 43]
+        //       모양순환(26=7), 인스펙터(34=I), Radial Menu(43=콤마 — ⌘, 설정 컨벤션과 의미 일치),
+        //       그리기 모드(2=D)
+        var codes: Set<Int64> = [24, 27, 18, 19, 20, 21, 23, 22, 29, 26, 34, 43, 2]
         // 가변: 스포트라이트 / 키스트로크 / 돋보기 토글
         codes.insert(Int64(settings.spotlightKeyCode))
         codes.insert(Int64(settings.keystrokeShortcutKeyCode))
@@ -114,17 +116,18 @@ final class KeyboardHotkeyHandler {
 
                 case .keyDown:
                     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-                    // ESC — Radial Menu 활성 중이면 cancel (modifier 무관)
+                    // ESC — Radial Menu 활성 중이면 cancel, 그리기 모드/도형 있으면 clear + exit (둘 다 modifier 무관)
                     if keyCode == 53 {
-                        DispatchQueue.main.async { h.cancelRadialMenuIfActive() }
+                        DispatchQueue.main.async { h.handleEscape() }
                     }
                     let f = event.flags
                     // ⌃·⌥ 둘 다 있고 ⌘·⇧는 없을 때만 우리 단축키 후보. (OptionSet == 대신 contains로 견고하게)
                     let isCtrlOptOnly = f.contains(.maskControl) && f.contains(.maskAlternate)
                         && !f.contains(.maskCommand) && !f.contains(.maskShift)
-                    // Toggle 모드 — 메뉴 활성 중에는 ESC만 항상 소비 (modifier 무관 close).
-                    let menuActiveConsume = h.radialMenuActiveFlag && keyCode == 53
-                    let consume = (isCtrlOptOnly && h.consumableCodes.contains(keyCode)) || menuActiveConsume
+                    // 메뉴/그리기 활성 중에는 ESC 소비 (다른 앱에 누수 방지)
+                    let drawingActive = h.mouseMonitor?.isDrawingModeActive ?? false
+                    let escConsume = (h.radialMenuActiveFlag || drawingActive) && keyCode == 53
+                    let consume = (isCtrlOptOnly && h.consumableCodes.contains(keyCode)) || escConsume
 
                     // 실제 처리는 main에서. CGEvent는 async 동안 무효화될 수 있어 copy 후 전달.
                     if let snapshot = event.copy() {
@@ -186,7 +189,21 @@ final class KeyboardHotkeyHandler {
         tapThread = nil
     }
 
-    /// Radial Menu cancel — ESC keyDown 또는 ⌃⌥M 토글 close 시 호출. 액션 실행 X.
+    /// ESC keyDown 처리 — radial 우선, 없으면 그리기 clear + exit.
+    func handleEscape() {
+        if runtime?.isRadialMenuActive == true {
+            cancelRadialMenuIfActive()
+            return
+        }
+        if let drawing = drawingState, drawing.isDrawingModeActive || !drawing.shapes.isEmpty {
+            drawing.clearAndExit()
+            mouseMonitor?.isDrawingModeActive = false
+            keystrokeOverlay?.showStatusNotification("✏️ 그리기 · clear")
+            return
+        }
+    }
+
+    /// Radial Menu cancel — ⌃⌥, 토글 close 또는 handleEscape에서 호출. 액션 실행 X.
     func cancelRadialMenuIfActive() {
         guard let runtime, runtime.isRadialMenuActive else { return }
         runtime.isRadialMenuActive = false
@@ -352,6 +369,19 @@ final class KeyboardHotkeyHandler {
 
         // ⌃⌥ 단축키
         if flags == [.control, .option] {
+            // ⌃⌥D — 그리기 모드 토글. 도형은 유지 (그린 후 모드 끄고 발표 진행 → 다시 켜서 추가)
+            if event.keyCode == 2 {
+                if let drawing = drawingState {
+                    drawing.toggleMode()
+                    mouseMonitor?.isDrawingModeActive = drawing.isDrawingModeActive
+                    if drawing.isDrawingModeActive {
+                        keystrokeOverlay.showStatusNotification("✏️ 그리기 · 켜짐 (Shift=직선 / Opt=화살표 / ESC=clear)")
+                    } else {
+                        keystrokeOverlay.showStatusNotification("✏️ 그리기 · 꺼짐")
+                    }
+                }
+                return
+            }
             // 스포트라이트 토글
             if event.keyCode == settings.spotlightKeyCode {
                 withAnimation(.easeInOut(duration: 0.35)) { runtime.isSpotlightActive.toggle() }

@@ -11,7 +11,8 @@ class OverlayWindowController {
          settings: CursorSettings,
          runtime: CursorRuntimeState,
          effects: EffectsState,
-         keystroke: KeystrokeOverlayState)
+         keystroke: KeystrokeOverlayState,
+         drawing: DrawingState)
     {
         // screen: 파라미터를 넘기면 contentRect가 해당 스크린 로컬 좌표로 해석됨 → 제거
         let win = NSWindow(
@@ -36,6 +37,7 @@ class OverlayWindowController {
             runtime: runtime,
             effects: effects,
             keystroke: keystroke,
+            drawing: drawing,
             screenFrame: screen.frame
         )
         win.contentView = NSHostingView(rootView: content)

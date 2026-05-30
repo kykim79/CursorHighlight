@@ -5,6 +5,7 @@ struct OverlayContentView: View {
     @ObservedObject var runtime: CursorRuntimeState
     @ObservedObject var effects: EffectsState
     @ObservedObject var keystroke: KeystrokeOverlayState
+    @ObservedObject var drawing: DrawingState
     let screenFrame: CGRect
 
     private var localPos: CGPoint { toLocal(runtime.cursorPosition) }
@@ -187,6 +188,23 @@ struct OverlayContentView: View {
                     color: effectiveColor,
                     ringShape: settings.ringShape
                 )
+            }
+
+            // 그리기 (⌃⌥D) — 도형 + 진행 중 stroke. radial menu·spotlight·magnifier 위에 그려짐.
+            ForEach(drawing.shapes) { shape in
+                DrawnShapeView(shape: shape, screenFrame: screenFrame)
+            }
+            if let current = drawing.currentShape {
+                DrawnShapeView(shape: current, screenFrame: screenFrame)
+            }
+            // 그리기 모드 활성 시 cursor 위치에 작은 + 인디케이터 (펜 모드 시각 단서)
+            if drawing.isDrawingModeActive && cursorOnScreen {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+                    .shadow(color: .black.opacity(0.6), radius: 2)
+                    .position(localPos)
+                    .allowsHitTesting(false)
             }
 
             // 키스트로크 / 상태 알림 (항상 트리에 포함 - 비활성 시 알림도 표시되어야 함)
@@ -878,16 +896,10 @@ struct RadialMenuView: View {
     let showHelp: Bool            // 처음 5회 동안만 하단에 사용법 한 줄 표시 (학습성)
     let accentColor: Color
 
-    private let items: [(icon: String, label: String)] = [
-        ("🔦", "스포트라이트"),  // 0 — 12시
-        ("🔍", "돋보기"),         // 1 — 1:30
-        ("✨", "효과"),            // 2 — 3시 (그룹: 메인=빛 효과 토글, 서브=5개 효과)
-        ("🔘", "링 크기"),        // 3 — 4:30
-        ("🎨", "링 색"),          // 4 — 6시
-        ("⭕", "링 모양"),        // 5 — 7:30
-        ("📐", "좌표/각도"),      // 6 — 9시 (📐 좌표 + 🧭 드래그각도)
-        ("⌨", "키 입력"),         // 7 — 10:30
-    ]
+    // 메인 sector 8종 — RadialMenuItem이 icon(SF Symbol)/label 단일 source.
+    private var items: [(icon: String, label: String)] {
+        CursorSettings.RadialMenuItem.allCases.map { ($0.icon, $0.label) }
+    }
     // DESIGN.md "Radial" 토큰
     private let deadRadius = Tokens.Radial.deadRadius
     private let mainOuter = Tokens.Radial.mainOuter
@@ -924,13 +936,15 @@ struct RadialMenuView: View {
                     .animation(Tokens.Motion.select, value: isMainSelected)
             }
 
-            // 메인 wedge 위에 아이콘 + 라벨
+            // 메인 wedge 위에 아이콘 + 라벨 (SF Symbol)
             ForEach(0..<8, id: \.self) { i in
                 let centerAngleDeg = Double(i) * 45 - 90
                 let r = (deadRadius + mainOuter) / 2
                 let rad = centerAngleDeg * .pi / 180
-                VStack(spacing: 2) {
-                    Text(items[i].icon).font(Tokens.Text.icon)
+                VStack(spacing: 4) {
+                    Image(systemName: items[i].icon)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(.white)
                     Text(items[i].label)
                         .font(Tokens.Text.captionSmall)
                         .foregroundColor(.white)
@@ -957,7 +971,7 @@ struct RadialMenuView: View {
             if let sec = selectedSector,
                let item = CursorSettings.RadialMenuItem(rawValue: sec),
                item.subCount > 0 {
-                let subLabels = item.subLabels
+                let subItems = item.subItems
                 let mainCenterDeg = Double(sec) * 45 - 90
                 let subSpan = item.subSpan  // 항목 많을수록 확장(최대 120°) — 라벨 겹침 방지
                 let step = subSpan / Double(item.subCount)
@@ -985,10 +999,17 @@ struct RadialMenuView: View {
                     let subCenterDeg = subStart + step * (Double(i) + 0.5)
                     let rSub = (mainOuter + subOuter) / 2
                     let radSub = subCenterDeg * .pi / 180
-                    Text(subLabels[i])
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                        .offset(x: cos(radSub) * rSub, y: sin(radSub) * rSub)
+                    let subItem = subItems[i]
+                    HStack(spacing: 4) {
+                        if let iconName = subItem.icon {
+                            Image(systemName: iconName)
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        Text(subItem.label)
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .offset(x: cos(radSub) * rSub, y: sin(radSub) * rSub)
                 }
             }
 
@@ -996,8 +1017,10 @@ struct RadialMenuView: View {
             // dead zone release는 원래도 cancel(80pt 안전선 미달)이지만, 명시 표시 없으면 사용자가 알기 어려움.
             // ESC/modifier release와 별개의 시각적 cancel 단서.
             if let sec = selectedSector {
-                VStack(spacing: 1) {
-                    Text(items[sec].icon).font(Tokens.Text.iconCenter)
+                VStack(spacing: 3) {
+                    Image(systemName: items[sec].icon)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(Tokens.Stroke.textActive)
                     Text(items[sec].label)
                         .font(Tokens.Text.labelTiny)
                         .foregroundColor(Tokens.Stroke.textActive)
@@ -1357,5 +1380,65 @@ struct SwipeVisualView: View {
             }
             _ = anchorOpacityStart  // (placeholder — 향후 더 미세 조정시 사용)
         }
+    }
+}
+
+// MARK: - 그리기 도형 (#19, ⌃⌥D)
+
+/// Quartz 좌표(원점 top-left) → overlay 로컬 좌표(원점 top-left, screenFrame 기준) 변환 후 Canvas로 stroke.
+/// 펜: 모든 점 line join. 직선: [start, end]. 화살표: 직선 + 끝에 ±30° arrowhead.
+struct DrawnShapeView: View {
+    let shape: DrawingState.Shape
+    let screenFrame: CGRect
+
+    private let lineWidth: CGFloat = 4
+    private let headLen: CGFloat = 16
+    private let headAngle: CGFloat = .pi / 6  // 30°
+
+    var body: some View {
+        Canvas { context, _ in
+            // Cocoa→overlay 변환 (overlay window는 NSWindow contentRect = screenFrame, y-flip은 SwiftUI가 처리)
+            let pts = shape.points.map { p in
+                CGPoint(x: p.x - screenFrame.minX, y: screenFrame.maxY - p.y)
+            }
+            guard pts.count >= 1 else { return }
+            let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+
+            switch shape.tool {
+            case .pen:
+                var path = Path()
+                path.move(to: pts[0])
+                for p in pts.dropFirst() { path.addLine(to: p) }
+                context.stroke(path, with: .color(shape.color), style: stroke)
+            case .line:
+                guard pts.count >= 2 else { return }
+                var path = Path()
+                path.move(to: pts[0])
+                path.addLine(to: pts[1])
+                context.stroke(path, with: .color(shape.color), style: stroke)
+            case .arrow:
+                guard pts.count >= 2 else { return }
+                let start = pts[0]
+                let end = pts[1]
+                var shaft = Path()
+                shaft.move(to: start)
+                shaft.addLine(to: end)
+                context.stroke(shaft, with: .color(shape.color), style: stroke)
+                // arrowhead — end 기준 ±30°, 길이 16
+                let dx = end.x - start.x
+                let dy = end.y - start.y
+                let angle = atan2(dy, dx)
+                let p1 = CGPoint(x: end.x - headLen * cos(angle - headAngle),
+                                 y: end.y - headLen * sin(angle - headAngle))
+                let p2 = CGPoint(x: end.x - headLen * cos(angle + headAngle),
+                                 y: end.y - headLen * sin(angle + headAngle))
+                var head = Path()
+                head.move(to: p1)
+                head.addLine(to: end)
+                head.addLine(to: p2)
+                context.stroke(head, with: .color(shape.color), style: stroke)
+            }
+        }
+        .allowsHitTesting(false)
     }
 }

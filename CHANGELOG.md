@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-05-31
+
+### Added
+
+- **그리기 모드 (⌃⌥D)** — 발표·스크린캐스트용 화면 annotation. ⌃⌥D 토글로 모드 ON, 좌클릭 드래그로 그리기. 모드 OFF 시에도 도형은 유지 — 그린 후 모드 끄고 마우스로 발표 진행, 다시 켜서 추가 가능.
+  - **도구 (모디파이어 기반):** 그냥 드래그 = 펜(free stroke) · Shift+드래그 = 직선 · Opt+드래그 = 화살표(끝에 ±30° arrowhead). Sketch/Figma 컨벤션.
+  - **색:** 현재 ringColor follow (DESIGN.md Active = ringColor follow 일관성).
+  - **ESC:** 모든 도형 clear + 모드 종료.
+  - **시각 단서:** 모드 활성 시 cursor 옆 `+` 인디케이터.
+  - 그리기 모드 활성 중 좌클릭 down·drag·up 모두 underlying app에 전달 안 함 (overlay 캡처 전용).
+- **Radial menu SF Symbols 통일** — 메인 sector(🔦→`flashlight.on.fill` 등 8종)와 효과/좌표 sub(💡→`lightbulb.fill` 등 6종) 아이콘이 emoji → SF Symbol로 전환. 일관 선화 두께·macOS HIG 정렬. PreferencesView 탭은 이미 SF Symbols 사용 중. 알림(keystroke overlay) emoji는 transient text라 유지.
+
+### Changed
+
+- `RadialMenuItem.subLabels: [String]` → `subItems: [SubItem]` 구조로 변경. SubItem은 optional SF Symbol icon + label 조합. 값 선택형 sub(반경/줌/색/시간 등)는 icon=nil 텍스트만, 카테고리형 sub(효과·좌표/각도)는 icon 노출.
+- `RadialMenuItem`에 `icon: String`(SF Symbol)과 `label: String` property 추가 — 메인 sector 단일 source.
+- `MouseEventMonitor`에 `isDrawingModeActive` 플래그 + `onDrawingDrag`/`onDrawingRelease` 콜백 추가. 그리기 활성 중 leftMouseDragged·leftMouseUp을 그리기 콜백으로 라우팅 + underlying 차단.
+
 ## [0.5.11] — 2026-05-30
 
 ### Added

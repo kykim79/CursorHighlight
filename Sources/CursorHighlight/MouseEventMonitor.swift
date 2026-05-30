@@ -8,6 +8,10 @@ class MouseEventMonitor {
     /// Background thread에서 호출 — radial menu 활성 중에만 true 리턴해 좌클릭을 소비.
     /// main에서 갱신 (한 워드 Bool read), 단일 Bool라 race tolerated.
     nonisolated(unsafe) var shouldConsumeLeftClick: Bool = false
+    /// ⌃⌥D 그리기 모드 — leftMouseDown/Dragged/Up 전부 소비 + 그리기 콜백으로 라우팅.
+    nonisolated(unsafe) var isDrawingModeActive: Bool = false
+    var onDrawingDrag: ((CGPoint) -> Void)?      // leftMouseDragged in drawing mode (Quartz 좌표)
+    var onDrawingRelease: ((CGPoint) -> Void)?   // leftMouseUp in drawing mode
     var onRightClick: ((CGPoint) -> Void)?
     var onMiddleClick: ((CGPoint) -> Void)?       // 휠 클릭 (button 2)
     var onShake: ((CGPoint) -> Void)?
@@ -73,6 +77,11 @@ class MouseEventMonitor {
                 case .leftMouseDragged:
                     m.processMove(loc)
                     DispatchQueue.main.async { m.onMouseMove?(loc) }
+                    // 그리기 모드 — 드래그 위치를 그리기 콜백으로 라우팅 + underlying 차단
+                    if m.isDrawingModeActive {
+                        DispatchQueue.main.async { m.onDrawingDrag?(loc) }
+                        return nil
+                    }
                     let now = Date().timeIntervalSinceReferenceDate
                     if !m.inDrag {
                         m.inDrag = true
@@ -98,12 +107,17 @@ class MouseEventMonitor {
                     let clickState = event.getIntegerValueField(.mouseEventClickState)
                     let isDouble = clickState >= 2
                     DispatchQueue.main.async { m.onLeftClick?(loc, isDouble) }
-                    // Radial menu 활성 중에는 click을 underlying app에 보내지 않음 — sub 실행 트리거 전용
-                    if m.shouldConsumeLeftClick {
+                    // Radial menu 또는 그리기 모드 활성 중에는 underlying app으로 click 전달 안 함
+                    if m.shouldConsumeLeftClick || m.isDrawingModeActive {
                         return nil
                     }
 
                 case .leftMouseUp:
+                    if m.isDrawingModeActive {
+                        DispatchQueue.main.async { m.onDrawingRelease?(loc) }
+                        m.inDrag = false
+                        return nil
+                    }
                     if m.inDrag {
                         m.inDrag = false
                         DispatchQueue.main.async { m.onDragEnd?() }
