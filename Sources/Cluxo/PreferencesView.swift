@@ -226,8 +226,9 @@ private struct RingTab: View {
     @ObservedObject var settings: CursorSettings
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        // ScrollView 제거 — GeometryReader가 ScrollView frame이 아닌 콘텐츠 intrinsic 측정.
+        // window resize로 항상 콘텐츠 fit. 화면보다 큰 경우는 macOS가 윈도우 자체를 조정.
+        VStack(alignment: .leading, spacing: 16) {
                 PrefSection(label: "색상") {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 10) {
                         ForEach(CursorSettings.RingColor.allCases.filter { $0 != .custom }) { c in
@@ -294,9 +295,8 @@ private struct RingTab: View {
                     desc("드래그 방향에 따라 링이 살짝 기울어지는 입체감 효과.")
                 }
             }
-            .padding(20)
-            .measureContentHeight()
-        }
+        .padding(20)
+        .measureContentHeight()
     }
 }
 
@@ -333,8 +333,7 @@ private struct EffectsTab: View {
     @ObservedObject var settings: CursorSettings
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
                 PrefSection(label: "애니메이션 속도") {
                     Picker("속도", selection: $settings.animationSpeed) {
                         ForEach(CursorSettings.AnimationSpeed.allCases) { Text($0.label).tag($0) }
@@ -378,9 +377,8 @@ private struct EffectsTab: View {
                     desc("4핀치·3/4 스와이프 등 시스템 제스처에 시각 피드백. 비공식 API라 실험적.")
                 }
             }
-            .padding(20)
-            .measureContentHeight()
-        }
+        .padding(20)
+        .measureContentHeight()
     }
 }
 
@@ -396,8 +394,7 @@ private struct ModesTab: View {
     private let magSizeOptions: [(CGFloat, String)] = [(160,"작게"), (200,"보통"), (260,"크게"), (320,"매우 크게")]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
                 // 스포트라이트
                 PrefSection(label: "스포트라이트") {
                     HStack {
@@ -490,8 +487,8 @@ private struct ModesTab: View {
                     }
                 }
             }
-            .padding(20)
-        }
+        .padding(20)
+        .measureContentHeight()
         .onAppear { externalMonitors = ExternalMonitor.current() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
             externalMonitors = ExternalMonitor.current()
@@ -529,8 +526,7 @@ private struct ShortcutsTab: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
                 PrefSection(label: "안내") {
                     desc("모든 단축키는 ⌃⌥ (Control+Option) + 아래 키 조합입니다. 클릭하고 원하는 키를 누르세요. ESC로 캡처 취소.")
                 }
@@ -582,9 +578,8 @@ private struct ShortcutsTab: View {
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(20)
-            .measureContentHeight()
-        }
+        .padding(20)
+        .measureContentHeight()
     }
 }
 
