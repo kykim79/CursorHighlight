@@ -9,7 +9,7 @@
 ## P3 — 배포 / 테스트
 
 ### #12 Notarization (선택 — Homebrew로 사실상 해결됨)
-- **상태**: **Homebrew Cask 배포로 우회 완료** (아래 완료 작업 참조). `brew install --cask kykim79/tap/cursorhighlight`로 사용자가 quarantine 우회 절차 없이 바로 설치 가능.
+- **상태**: **Homebrew Cask 배포로 우회 완료** (아래 완료 작업 참조). `brew install --cask kykim79/tap/cluxo`로 사용자가 quarantine 우회 절차 없이 바로 설치 가능.
 - **여전히 필요한 케이스**: Mac App Store 등록, Sparkle 자동 업데이트, GitHub Releases 직접 다운로드 사용자 경험 개선.
 - **비용**: Apple Developer Program $99/년 + GitHub Actions notarization 자동화.
 
@@ -142,8 +142,8 @@
   - `.github/workflows/release.yml` — macos-15 runner에서 xcodegen + xcodebuild
     Release + ditto zip + sha256 + GitHub Release create + tap repo cask 자동 commit
   - `project.yml` + `Info.plist` — `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION` 동적 주입
-  - `kykim79/homebrew-tap` repo의 `Casks/cursorhighlight.rb` 자동 갱신
-  - README — `brew install --cask kykim79/tap/cursorhighlight` 안내
+  - `kykim79/homebrew-tap` repo의 `Casks/cluxo.rb` 자동 갱신
+  - README — `brew install --cask kykim79/tap/cluxo` 안내
   - **#12 Notarization 사실상 대체** — Homebrew가 quarantine flag 자동 제거하므로
     Gatekeeper 우회 절차 없이 더블클릭 설치 동등 경험.
   - 첫 release: v0.1.1 (v0.1.0은 GitHub side asset routing inconsistency로 폐기).

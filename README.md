@@ -74,10 +74,10 @@ macOS 메뉴바 앱. 마우스 커서를 시각적으로 강조해 화면 녹화
 ### Homebrew (추천)
 
 ```bash
-brew install --cask kykim79/tap/cursorhighlight
+brew install --cask kykim79/tap/cluxo
 ```
 
-Homebrew가 다운로드 시 quarantine flag를 자동으로 제거해주므로 Gatekeeper 우회 절차 없이 바로 동작. 업데이트도 `brew upgrade --cask cursorhighlight` 한 줄.
+Homebrew가 다운로드 시 quarantine flag를 자동으로 제거해주므로 Gatekeeper 우회 절차 없이 바로 동작. 업데이트도 `brew upgrade --cask cluxo` 한 줄.
 
 ### 수동 설치
 

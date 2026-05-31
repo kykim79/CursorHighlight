@@ -74,10 +74,10 @@ Some shortcuts are configurable in Preferences (menu bar → Preferences).
 ### Homebrew (recommended)
 
 ```bash
-brew install --cask kykim79/tap/cursorhighlight
+brew install --cask kykim79/tap/cluxo
 ```
 
-Homebrew automatically removes the quarantine flag, so no Gatekeeper bypass needed. Updates: `brew upgrade --cask cursorhighlight`.
+Homebrew automatically removes the quarantine flag, so no Gatekeeper bypass needed. Updates: `brew upgrade --cask cluxo`.
 
 ### Manual
 

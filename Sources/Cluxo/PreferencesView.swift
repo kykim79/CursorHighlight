@@ -728,7 +728,7 @@ private struct InfoTab: View {
     private func runBrewUpgrade(brewPath: String) async throws -> BrewResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: brewPath)
-        process.arguments = ["upgrade", "--cask", "kykim79/tap/cursorhighlight"]
+        process.arguments = ["upgrade", "--cask", "kykim79/tap/cluxo"]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
@@ -799,13 +799,13 @@ private struct InfoTab: View {
     private func runUpgradeInTerminal() {
         upgradeError = nil
         upgradeOutput = ""
-        let scriptPath = NSTemporaryDirectory() + "cursorhighlight-upgrade.sh"
+        let scriptPath = NSTemporaryDirectory() + "cluxo-upgrade.sh"
         let script = """
         #!/bin/zsh
         echo "▶ Cluxo 업데이트 (Terminal fallback)"
-        echo "  명령: brew upgrade --cask kykim79/tap/cursorhighlight"
+        echo "  명령: brew upgrade --cask kykim79/tap/cluxo"
         echo
-        if brew upgrade --cask kykim79/tap/cursorhighlight; then
+        if brew upgrade --cask kykim79/tap/cluxo; then
             echo
             echo "✓ 업데이트 완료. Cluxo를 재시작합니다..."
             pkill -x Cluxo 2>/dev/null
