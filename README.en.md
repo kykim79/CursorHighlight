@@ -11,7 +11,7 @@ macOS menu bar app for presentations and screencasts. Visually emphasizes the mo
 
 > 🇰🇷 [한국어 README](README.md)
 
-![Purple cursor ring + click effects (in Xcode)](docs/screenshots/01-hero-v2.png)
+![Cluxo demo — drawing mode · radial menu · keystroke display](docs/screenshots/01-hero.gif)
 
 ## Features
 

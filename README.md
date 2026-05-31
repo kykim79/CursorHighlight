@@ -11,7 +11,7 @@ macOS 메뉴바 앱. 마우스 커서를 시각적으로 강조해 화면 녹화
 
 > 🇺🇸 [English README](README.en.md)
 
-![보라색 커서 링 + 클릭 효과 (Xcode에서)](docs/screenshots/01-hero-v2.png)
+![Cluxo 데모 — 그리기 모드 · 라디얼 메뉴 · 키스트로크](docs/screenshots/01-hero.gif)
 
 ## 기능
 

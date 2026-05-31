@@ -31,3 +31,6 @@ Packages/
 *.swp
 *.tmp
 *~
+
+# Demo source files (large originals, not for repo)
+docs/screenshots/_source/
