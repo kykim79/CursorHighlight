@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 // MARK: - Preferences Window Controller
 
@@ -11,13 +12,16 @@ final class PrefSelection: ObservableObject {
 
 class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
     let selection = PrefSelection()
+    private var cancellables: Set<AnyCancellable> = []
+    private static let windowWidth: CGFloat = 660
 
     init(settings: CursorSettings, runtime: CursorRuntimeState) {
+        let initialHeight = PrefTab.ring.contentHeight
         let view = PreferencesView(settings: settings, runtime: runtime, selection: selection)
         let hosting = NSHostingView(rootView: view)
-        hosting.frame = NSRect(x: 0, y: 0, width: 660, height: 760)
+        hosting.frame = NSRect(x: 0, y: 0, width: Self.windowWidth, height: initialHeight)
         let window = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 660, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: Self.windowWidth, height: initialHeight),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -43,6 +47,19 @@ class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
         toolbar.autosavesConfiguration = false
         toolbar.selectedItemIdentifier = NSToolbarItem.Identifier(PrefTab.ring.rawValue)
         window.toolbar = toolbar
+
+        // 탭 변경 시 콘텐츠 길이에 맞춰 window 높이 자동 조정 — 빈 공간/스크롤 최소화.
+        // 시스템 설정.app과 동일 UX. NSWindow는 contentSize만 명시하면 toolbar/title bar height
+        // 자동 가산. 애니메이션 default 활성화.
+        selection.$tab
+            .removeDuplicates()
+            .dropFirst()  // 초기 .ring은 init에서 이미 적용 — 중복 resize 방지
+            .sink { [weak self] tab in
+                guard let window = self?.window else { return }
+                let newSize = NSSize(width: Self.windowWidth, height: tab.contentHeight)
+                window.setContentSize(newSize)
+            }
+            .store(in: &cancellables)
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -106,6 +123,19 @@ enum PrefTab: String, CaseIterable, Identifiable {
         case .general:   return "gearshape.fill"
         }
     }
+    /// 탭별 NSWindow contentSize height — 콘텐츠 길이에 맞춰 미세 조정.
+    /// 짧은 탭은 빈 공간 없이, 긴 탭은 스크롤 없이 한 화면에 표시.
+    /// 변경 시점에 동적 측정도 가능하지만 (PreferenceKey + GeometryReader)
+    /// 매 layout마다 resize loop 위험이 있어 hardcoded 유지.
+    var contentHeight: CGFloat {
+        switch self {
+        case .ring:      return 600
+        case .effects:   return 640
+        case .modes:     return 620
+        case .shortcuts: return 720
+        case .general:   return 680
+        }
+    }
 }
 
 struct PreferencesView: View {
@@ -124,7 +154,10 @@ struct PreferencesView: View {
             case .general:   GeneralTab(settings: settings)
             }
         }
-        .frame(width: 660, height: 760)
+        // height는 PreferencesWindowController가 selection.tab onChange로 동적 resize.
+        // SwiftUI 쪽에선 width만 고정, height는 .infinity로 NSWindow contentSize에 맞춤.
+        .frame(width: 660)
+        .frame(maxHeight: .infinity)
     }
 }
 
