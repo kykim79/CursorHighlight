@@ -1,6 +1,13 @@
 # Cluxo
 
-macOS 메뉴바 앱. 마우스 커서를 시각적으로 강조해 화면 녹화, 발표, 페어 프로그래밍 시 커서 위치를 명확하게 보여줍니다.
+[![License](https://img.shields.io/github/license/kykim79/Cluxo?style=flat-square)](LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/kykim79/Cluxo?style=flat-square)](https://github.com/kykim79/Cluxo/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-13.0+-blue?style=flat-square&logo=apple)](https://github.com/kykim79/Cluxo)
+[![Swift](https://img.shields.io/badge/Swift-5.9-orange?style=flat-square&logo=swift)](https://swift.org)
+[![Downloads](https://img.shields.io/github/downloads/kykim79/Cluxo/total?style=flat-square)](https://github.com/kykim79/Cluxo/releases)
+[![Stars](https://img.shields.io/github/stars/kykim79/Cluxo?style=flat-square)](https://github.com/kykim79/Cluxo/stargazers)
+
+macOS 메뉴바 앱. 마우스 커서를 시각적으로 강조해 화면 녹화, 발표, 페어 프로그래밍 시 커서 위치를 명확하게 보여줍니다. 그리기 도구·라디얼 메뉴·키스트로크 표시 등 발표/스크린캐스트 워크플로우를 위한 종합 도우미.
 
 > 🇺🇸 [English README](README.en.md)
 

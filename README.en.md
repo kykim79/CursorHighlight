@@ -1,6 +1,13 @@
 # Cluxo
 
-macOS menu bar app. Visually emphasizes the mouse cursor for screen recording, presentations, and pair programming.
+[![License](https://img.shields.io/github/license/kykim79/Cluxo?style=flat-square)](LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/kykim79/Cluxo?style=flat-square)](https://github.com/kykim79/Cluxo/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-13.0+-blue?style=flat-square&logo=apple)](https://github.com/kykim79/Cluxo)
+[![Swift](https://img.shields.io/badge/Swift-5.9-orange?style=flat-square&logo=swift)](https://swift.org)
+[![Downloads](https://img.shields.io/github/downloads/kykim79/Cluxo/total?style=flat-square)](https://github.com/kykim79/Cluxo/releases)
+[![Stars](https://img.shields.io/github/stars/kykim79/Cluxo?style=flat-square)](https://github.com/kykim79/Cluxo/stargazers)
+
+macOS menu bar app for presentations and screencasts. Visually emphasizes the mouse cursor with drawing tools, radial menu, keystroke display, spotlight, magnifier, and more — a complete helper for screen-sharing workflows.
 
 > 🇰🇷 [한국어 README](README.md)
 
