@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-05-31
+
+### Fixed
+
+- **In-app 업데이트 명령에 옛 cask 이름 잔존** — v1.0의 CursorHighlight → Cluxo 이름 변경 후 5곳이 누락됐던 것을 정리.
+  - `PreferencesView` "지금 업데이트" 버튼이 호출하는 `brew upgrade --cask kykim79/tap/cursorhighlight` → `…/cluxo`. v1.1.0 빌드에선 in-app 업데이트가 실패했음(터미널에서 수동 `brew upgrade --cask kykim79/tap/cluxo`로 우회 가능).
+  - Terminal fallback 스크립트와 임시 파일명(`cursorhighlight-upgrade.sh` → `cluxo-upgrade.sh`)도 정리.
+  - README.md / README.en.md 설치·업그레이드 안내 명령 cluxo로 통일.
+- **README 라디얼 메뉴 발견성** — 마우스 좌클릭 길게 누름(0.5s)과 트랙패드 길게 누름으로도 동일하게 열린다는 점을 단축키 표와 기능 설명에 명시. 트랙패드 제스처 시각 피드백(실험적) 항목도 새로 추가.
+
 ## [1.1.0] — 2026-05-31
 
 ### Added
