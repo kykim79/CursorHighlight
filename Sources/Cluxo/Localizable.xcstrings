@@ -15,6 +15,15 @@
         }
       }
     },
+    "언어" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Language" } } } },
+    "표시 언어" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Display Language" } } } },
+    "UI 언어" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "UI Language" } } } },
+    "시스템 기본" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "System Default" } } } },
+    "언어 변경 적용" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Apply Language Change" } } } },
+    "변경된 언어를 적용하려면 Cluxo를 재시작해야 합니다." : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Cluxo must restart to apply the new language." } } } },
+    "지금 재시작" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Restart Now" } } } },
+    "나중에" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Later" } } } },
+    "앱 UI에 표시할 언어. 변경 후 Cluxo를 재시작해야 적용됩니다. ‘시스템 기본’은 macOS 시스템 언어를 따릅니다." : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Language to display in the app UI. Changes apply after Cluxo restarts. ‘System Default’ follows your macOS system language." } } } },
     "스포트라이트  ⌃⌥S": {
       "localizations": {
         "en": {

@@ -118,7 +118,7 @@ struct PreferencesView: View {
             case .behavior:   BehaviorTab(settings: settings)
             case .magnifier:  MagnifierTab(settings: settings, runtime: runtime)
             case .shortcuts:  ShortcutsTab(settings: settings)
-            case .info:       InfoTab()
+            case .info:       InfoTab(settings: settings)
             }
         }
         .frame(width: 520, height: 580)
@@ -537,6 +537,7 @@ private struct ShortcutsTab: View {
 // MARK: - Info Tab
 
 private struct InfoTab: View {
+    @ObservedObject var settings: CursorSettings
     @State private var updateMessage: String = ""
     @State private var checking: Bool = false
     @State private var newerVersion: String? = nil   // 최신 release tag (예: "0.1.2"). nil이면 업데이트 없음.
@@ -555,6 +556,24 @@ private struct InfoTab: View {
 
     var body: some View {
         Form {
+            Section("표시 언어") {
+                Picker(selection: $settings.preferredLanguage) {
+                    ForEach(CursorSettings.PreferredLanguage.allCases) { lang in
+                        Text(verbatim: lang.label).tag(lang)
+                    }
+                } label: {
+                    Text("UI 언어")
+                }
+                .pickerStyle(.menu)
+
+                Text("앱 UI에 표시할 언어. 변경 후 Cluxo를 재시작해야 적용됩니다. ‘시스템 기본’은 macOS 시스템 언어를 따릅니다.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .onChange(of: settings.preferredLanguage) { _ in
+                promptRestartForLanguageChange()
+            }
+
             Section("앱 정보") {
                 LabeledContent("버전", value: "v\(appVersion) (\(buildNumber))")
                 LabeledContent("개발자", value: "ktoy")
@@ -809,6 +828,24 @@ private struct InfoTab: View {
             try proc.run()
         } catch {
             upgradeError = "Terminal 실행 실패: \(error.localizedDescription)"
+        }
+    }
+
+    /// 언어 변경 후 재시작 안내. "지금 재시작" 선택 시 새 인스턴스 띄우고 종료.
+    /// AppDelegate.selectLanguage(_:)와 동일 로직 — 상태바 메뉴/환경설정 양쪽에서 동일 UX.
+    private func promptRestartForLanguageChange() {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "언어 변경 적용")
+        alert.informativeText = String(localized: "변경된 언어를 적용하려면 Cluxo를 재시작해야 합니다.")
+        alert.addButton(withTitle: String(localized: "지금 재시작"))
+        alert.addButton(withTitle: String(localized: "나중에"))
+        if alert.runModal() == .alertFirstButtonReturn {
+            let url = Bundle.main.bundleURL
+            let task = Process()
+            task.launchPath = "/usr/bin/open"
+            task.arguments = ["-n", url.path]
+            try? task.run()
+            NSApp.terminate(nil)
         }
     }
 }

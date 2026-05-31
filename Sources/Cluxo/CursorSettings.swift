@@ -50,6 +50,10 @@ final class CursorSettings: ObservableObject {
     @Persisted("isIdlePulseEnabled", default: true) var isIdlePulseEnabled: Bool  // 1.5초 정지 시 1회 펄스 — "여기 보세요" 자연스러운 강조
     @Persisted("isTrackpadGesturesEnabled", default: false) var isTrackpadGesturesEnabled: Bool  // 4핀치/3·4 swipe 효과 — 비공식 API(MultitouchSupport), default off
 
+    // 앱 UI 언어 강제 — .system이면 macOS 시스템 언어 따름.
+    // 실제 적용은 main.swift에서 NSApplication 생성 전 AppleLanguages override.
+    @Persisted("preferredLanguage", default: PreferredLanguage.system) var preferredLanguage: PreferredLanguage
+
     // 낯선 외장 모니터(신뢰 목록에 없는) 연결 시 키스트로크 표시 자동 ON — 발표·회의 상황 감지.
     // 자주 쓰는 데스크탑 모니터는 trustedMonitorUUIDs에 등록해 제외.
     @Persisted("autoKeystrokeOnUnknownMonitor", default: false) var autoKeystrokeOnUnknownMonitor: Bool
@@ -411,6 +415,31 @@ final class CursorSettings: ObservableObject {
             switch self {
             case .solid:  return "실선"
             case .dashed: return "대시"
+            }
+        }
+    }
+
+    /// UI 표시 언어 — .system이면 macOS 시스템 설정 따름.
+    /// 실제 적용은 main.swift에서 NSApplication 인스턴스 생성 전에 AppleLanguages override.
+    enum PreferredLanguage: String, CaseIterable, Identifiable {
+        case system, ko, en
+        var id: String { rawValue }
+
+        /// AppleLanguages override에 사용할 코드. .system은 nil — override 해제.
+        var languageCode: String? {
+            switch self {
+            case .system: return nil
+            case .ko:     return "ko"
+            case .en:     return "en"
+            }
+        }
+
+        /// 환경설정·메뉴 표시용 라벨 — 자기 언어로 표기 (사용자가 모르는 언어로 적혀 있어도 알아볼 수 있게).
+        var label: String {
+            switch self {
+            case .system: return "시스템 기본"
+            case .ko:     return "한국어"
+            case .en:     return "English"
             }
         }
     }

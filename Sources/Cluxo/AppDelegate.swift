@@ -76,6 +76,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - UI
     private var statusItem: NSStatusItem?
     private var enableMenuItem: NSMenuItem?
+    private var languageMenuItem: NSMenuItem?  // 서브메뉴 checkmark 갱신용
     private var statusMenu: NSMenu?  // 우클릭 시 popUp으로 직접 표시
     private var preferencesController: PreferencesWindowController?
     private var overlays: [OverlayWindowController] = []
@@ -398,6 +399,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         prefItem.target = self
         menu.addItem(prefItem)
 
+        // 언어 서브메뉴 — 시스템 기본/한국어/English. 변경 시 재시작 안내.
+        let langItem = NSMenuItem(title: String(localized: "언어"), action: nil, keyEquivalent: "")
+        let langSubmenu = NSMenu()
+        for lang in CursorSettings.PreferredLanguage.allCases {
+            let item = NSMenuItem(title: lang.label, action: #selector(selectLanguage(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = lang.rawValue
+            item.state = (settings.preferredLanguage == lang) ? .on : .off
+            langSubmenu.addItem(item)
+        }
+        langItem.submenu = langSubmenu
+        menu.addItem(langItem)
+        languageMenuItem = langItem
+
         menu.addItem(.separator())
 
         // 스포트라이트·돋보기·키스트로크·스크린샷 모드는 단축키(⌃⌥S/M/K) + 라디얼 메뉴(⌃⌥,)로 접근 가능 →
@@ -430,6 +445,48 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // v1.0.0: 메뉴바 토글 4개(스포트라이트/돋보기/키스트로크/스크린샷 모드) 제거.
     // 단축키(⌃⌥S/M/K) + 라디얼 메뉴(⌃⌥,)로 같은 동작 가능. 스크린샷 모드는 환경설정에서 토글.
+
+    /// 언어 서브메뉴 항목 클릭 — settings에 저장하고 재시작 안내.
+    /// 실제 UI 언어는 main.swift에서 NSApplication 생성 전 AppleLanguages override로 적용되므로 재시작 필요.
+    @objc private func selectLanguage(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let lang = CursorSettings.PreferredLanguage(rawValue: raw) else { return }
+        if settings.preferredLanguage == lang { return }
+        settings.preferredLanguage = lang
+        refreshLanguageMenuChecks()
+        promptRestartForLanguageChange()
+    }
+
+    /// 언어 변경 후 서브메뉴 ✓ 표시 갱신.
+    private func refreshLanguageMenuChecks() {
+        guard let submenu = languageMenuItem?.submenu else { return }
+        for item in submenu.items {
+            guard let raw = item.representedObject as? String else { continue }
+            item.state = (raw == settings.preferredLanguage.rawValue) ? .on : .off
+        }
+    }
+
+    /// 언어 변경 적용 안내 alert — "지금 재시작" 선택 시 새 인스턴스 띄우고 종료.
+    private func promptRestartForLanguageChange() {
+        let alert = NSAlert()
+        alert.messageText = String(localized: "언어 변경 적용")
+        alert.informativeText = String(localized: "변경된 언어를 적용하려면 Cluxo를 재시작해야 합니다.")
+        alert.addButton(withTitle: String(localized: "지금 재시작"))
+        alert.addButton(withTitle: String(localized: "나중에"))
+        if alert.runModal() == .alertFirstButtonReturn {
+            relaunchApp()
+        }
+    }
+
+    /// 현재 앱을 새 인스턴스로 재실행. `open -n`은 같은 앱 다중 인스턴스 허용.
+    private func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let task = Process()
+        task.launchPath = "/usr/bin/open"
+        task.arguments = ["-n", url.path]
+        try? task.run()
+        NSApp.terminate(nil)
+    }
 
     @objc private func openPreferences() {
         if preferencesController == nil {
