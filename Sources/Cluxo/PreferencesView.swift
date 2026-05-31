@@ -5,9 +5,30 @@ import Combine
 // MARK: - Preferences Window Controller
 
 /// 현재 선택된 탭 — NSToolbar(AppKit)와 SwiftUI 본문이 같은 source 공유.
+/// measuredHeight는 각 Tab body의 GeometryReader가 실측한 콘텐츠 height —
+/// PreferencesWindowController가 sink로 받아 window contentSize를 동적 갱신.
 @MainActor
 final class PrefSelection: ObservableObject {
     @Published var tab: PrefTab = .ring
+    @Published var measuredHeight: CGFloat = 600
+}
+
+/// 자식 View에서 측정한 height를 부모로 전달 — Tab의 VStack intrinsic height.
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// 각 Tab의 콘텐츠에 적용하는 modifier — VStack intrinsic size를 ContentHeightKey로 publish.
+/// ScrollView 안에 있어도 GeometryReader는 VStack 자체 크기를 측정(ScrollView clip 무관).
+extension View {
+    func measureContentHeight() -> some View {
+        background(GeometryReader { proxy in
+            Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
+        })
+    }
 }
 
 class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
@@ -48,20 +69,19 @@ class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
         toolbar.selectedItemIdentifier = NSToolbarItem.Identifier(PrefTab.ring.rawValue)
         window.toolbar = toolbar
 
-        // 탭 변경 시 콘텐츠 길이에 맞춰 window 높이 자동 조정 — 빈 공간/스크롤 최소화.
-        // 시스템 설정.app과 동일 UX.
-        // ⚠️ DispatchQueue.main.async가 핵심 — sink 즉시 setContentSize 호출하면 SwiftUI body
-        // switch가 아직 새 case로 re-render 되기 전이라 잠시 동안 이전 콘텐츠가 새 윈도우
-        // 크기로 보임(toolbar는 새 탭 highlight, body는 이전 탭). async로 한 runloop 미뤄
-        // SwiftUI body 갱신 후에 window resize.
-        selection.$tab
+        // 탭 변경 → SwiftUI body re-render → 새 Tab의 GeometryReader가 콘텐츠 측정 →
+        // selection.measuredHeight 갱신 → 이 sink가 받아서 window resize.
+        // 측정값 기반이라 hardcoded 값보다 정확. main.async로 한 runloop 미뤄 SwiftUI
+        // layout 완료 후 resize.
+        selection.$measuredHeight
             .removeDuplicates()
-            .dropFirst()
-            .sink { [weak self] tab in
+            .sink { [weak self] height in
                 DispatchQueue.main.async {
                     guard let window = self?.window else { return }
-                    let newSize = NSSize(width: Self.windowWidth, height: tab.contentHeight)
-                    window.setContentSize(newSize)
+                    let target = max(360, height)  // 최소 fallback
+                    let current = window.contentRect(forFrameRect: window.frame).height
+                    if abs(target - current) < 1 { return }  // resize loop 방지
+                    window.setContentSize(NSSize(width: Self.windowWidth, height: target))
                 }
             }
             .store(in: &cancellables)
@@ -159,10 +179,16 @@ struct PreferencesView: View {
             case .general:   GeneralTab(settings: settings)
             }
         }
-        // height는 PreferencesWindowController가 selection.tab onChange로 동적 resize.
-        // SwiftUI 쪽에선 width만 고정, height는 .infinity로 NSWindow contentSize에 맞춤.
+        // 콘텐츠 실측 height를 PrefSelection으로 publish — Controller가 receive해서 window resize.
         .frame(width: 660)
         .frame(maxHeight: .infinity)
+        .onPreferenceChange(ContentHeightKey.self) { newHeight in
+            // padding/window chrome 차이 미세조정용 buffer (toolbar height 등은 setContentSize가
+            // 자동 가산하므로 여기선 콘텐츠 자체 height만).
+            DispatchQueue.main.async {
+                selection.measuredHeight = newHeight
+            }
+        }
     }
 }
 
@@ -269,6 +295,7 @@ private struct RingTab: View {
                 }
             }
             .padding(20)
+            .measureContentHeight()
         }
     }
 }
@@ -352,6 +379,7 @@ private struct EffectsTab: View {
                 }
             }
             .padding(20)
+            .measureContentHeight()
         }
     }
 }
@@ -555,6 +583,7 @@ private struct ShortcutsTab: View {
                 }
             }
             .padding(20)
+            .measureContentHeight()
         }
     }
 }
@@ -694,6 +723,7 @@ private struct GeneralTab: View {
         }
         .formStyle(.grouped)
         .padding(.horizontal)
+        .measureContentHeight()
         .onAppear {
             launchAtLogin = settings.launchAtLoginEnabled
         }
