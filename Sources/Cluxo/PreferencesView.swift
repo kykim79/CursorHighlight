@@ -49,15 +49,20 @@ class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
         window.toolbar = toolbar
 
         // 탭 변경 시 콘텐츠 길이에 맞춰 window 높이 자동 조정 — 빈 공간/스크롤 최소화.
-        // 시스템 설정.app과 동일 UX. NSWindow는 contentSize만 명시하면 toolbar/title bar height
-        // 자동 가산. 애니메이션 default 활성화.
+        // 시스템 설정.app과 동일 UX.
+        // ⚠️ DispatchQueue.main.async가 핵심 — sink 즉시 setContentSize 호출하면 SwiftUI body
+        // switch가 아직 새 case로 re-render 되기 전이라 잠시 동안 이전 콘텐츠가 새 윈도우
+        // 크기로 보임(toolbar는 새 탭 highlight, body는 이전 탭). async로 한 runloop 미뤄
+        // SwiftUI body 갱신 후에 window resize.
         selection.$tab
             .removeDuplicates()
-            .dropFirst()  // 초기 .ring은 init에서 이미 적용 — 중복 resize 방지
+            .dropFirst()
             .sink { [weak self] tab in
-                guard let window = self?.window else { return }
-                let newSize = NSSize(width: Self.windowWidth, height: tab.contentHeight)
-                window.setContentSize(newSize)
+                DispatchQueue.main.async {
+                    guard let window = self?.window else { return }
+                    let newSize = NSSize(width: Self.windowWidth, height: tab.contentHeight)
+                    window.setContentSize(newSize)
+                }
             }
             .store(in: &cancellables)
     }
