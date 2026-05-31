@@ -2573,6 +2573,16 @@
           }
         }
       }
+    },
+    "대기 시간": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Idle Duration"
+          }
+        }
+      }
     }
   }
 }

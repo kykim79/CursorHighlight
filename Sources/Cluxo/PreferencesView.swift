@@ -15,9 +15,9 @@ class PreferencesWindowController: NSWindowController, NSToolbarDelegate {
     init(settings: CursorSettings, runtime: CursorRuntimeState) {
         let view = PreferencesView(settings: settings, runtime: runtime, selection: selection)
         let hosting = NSHostingView(rootView: view)
-        hosting.frame = NSRect(x: 0, y: 0, width: 520, height: 580)
+        hosting.frame = NSRect(x: 0, y: 0, width: 620, height: 600)
         let window = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 580),
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 600),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -121,7 +121,7 @@ struct PreferencesView: View {
             case .info:       InfoTab(settings: settings)
             }
         }
-        .frame(width: 520, height: 580)
+        .frame(width: 620, height: 600)
     }
 }
 
@@ -135,7 +135,7 @@ private struct PrefSection<Content: View>: View {
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             Text(verbatim: "\(label.loc):")
-                .frame(width: 100, alignment: .trailing)
+                .frame(width: 140, alignment: .trailing)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 6) {
                 content()
@@ -289,7 +289,7 @@ private struct BehaviorTab: View {
             VStack(alignment: .leading, spacing: 22) {
                 PrefSection(label: "키스트로크") {
                     HStack {
-                        Text(verbatim: "표시 시간").frame(width: 70, alignment: .leading)
+                        Text(verbatim: "표시 시간".loc).frame(width: 100, alignment: .leading)
                         Slider(value: $settings.keystrokeTimeout, in: 1...8, step: 0.5)
                         Text(String(format: "%.1f초", settings.keystrokeTimeout))
                             .monospacedDigit().frame(width: 44, alignment: .trailing)
@@ -324,7 +324,7 @@ private struct BehaviorTab: View {
 
                 PrefSection(label: "커서 숨김") {
                     HStack {
-                        Text(verbatim: "대기 시간").frame(width: 70, alignment: .leading)
+                        Text(verbatim: "대기 시간".loc).frame(width: 100, alignment: .leading)
                         Slider(value: $settings.idleTimeout, in: 1...10, step: 0.5)
                         Text(String(format: "%.1f초", settings.idleTimeout))
                             .monospacedDigit().frame(width: 44, alignment: .trailing)
