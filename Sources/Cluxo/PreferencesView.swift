@@ -567,7 +567,7 @@ private struct InfoTab: View {
                 .pickerStyle(.menu)
 
                 Text("앱 UI에 표시할 언어. 변경 후 Cluxo를 재시작해야 적용됩니다. ‘시스템 기본’은 macOS 시스템 언어를 따릅니다.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .onChange(of: settings.preferredLanguage) { _ in
@@ -857,9 +857,9 @@ private struct ShortcutRow: View {
     var body: some View {
         HStack {
             Text(verbatim: key.loc)
-                .font(.system(.caption, design: .monospaced))
-                .frame(width: 90, alignment: .leading)
-            Text(verbatim: desc.loc).font(.caption).foregroundColor(.secondary)
+                .font(.system(.callout, design: .monospaced))
+                .frame(width: 110, alignment: .leading)
+            Text(verbatim: desc.loc).font(.callout).foregroundColor(.secondary)
         }
     }
 }
