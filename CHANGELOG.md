@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [1.1.2] — 2026-05-31
+
+### Fixed
+
+- **업데이트 확인 메시지가 영어 모드에서도 한국어로 표시** — "Check for Updates" 결과 5개 메시지가 모두 String interpolation 포함 동적 문자열이라 catalog matching이 일어나지 않아 영어 모드에서도 한국어 그대로 노출됐음.
+  - `String(format: "...%@...".loc, args…)` 패턴으로 분리해 catalog lookup이 동작하도록 수정.
+  - 새 source key 5개 + en 번역 추가 (`📥 새 버전 v%@ 사용 가능 (현재 v%@)`, `✓ 최신 버전입니다 (v%@)`, `⚠️ 로컬 버전(v%@)이 …`, `확인 실패: 서버 응답 %d`, `확인 실패: %@`).
+  - 죽은 interpolation source key 정리.
+
 ## [1.1.1] — 2026-05-31
 
 ### Fixed
