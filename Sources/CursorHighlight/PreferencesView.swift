@@ -332,8 +332,29 @@ private struct MagnifierTab: View {
 private struct ShortcutsTab: View {
     @ObservedObject var settings: CursorSettings
 
-    private let spotlightOptions: [(UInt16, String)] = [(1,"S"), (3,"F"), (18,"1"), (5,"G")]
-    private let keystrokeOptions: [(UInt16, String)] = [(40,"K"), (37,"L"), (19,"2"), (32,"U")]
+    /// 자기 자신 제외하고 다른 단축키와의 충돌, 또는 reserved 키와의 충돌을 한 줄로 반환. nil = 충돌 없음.
+    private func conflictFor(name: String, code: UInt16) -> String? {
+        let userConfigurable: [(String, UInt16)] = [
+            ("스포트라이트", settings.spotlightKeyCode),
+            ("키스트로크", settings.keystrokeShortcutKeyCode),
+            ("돋보기", settings.magnifierShortcutKeyCode),
+            ("Radial Menu", settings.radialMenuKeyCode),
+            ("그리기 모드", settings.drawingKeyCode),
+            ("좌표 인스펙터", settings.inspectorKeyCode),
+        ]
+        if let other = userConfigurable.first(where: { $0.0 != name && $0.1 == code }) {
+            return "'\(other.0)' 단축키와 중복"
+        }
+        // 고정(재정의 불가) 단축키와도 비교 — 색상 1~7, ⌃⌥C(순환), ⌃⌥H(모양 순환), 줌
+        let reserved: [(UInt16, String)] = [
+            (18,"색상 1"), (19,"색상 2"), (20,"색상 3"), (21,"색상 4"), (23,"색상 5"), (22,"색상 6"), (26,"색상 7 흰"),
+            (8,"색 순환"), (4,"모양 순환"), (24,"줌 in"), (27,"줌 out"),
+        ]
+        if let r = reserved.first(where: { $0.0 == code }) {
+            return "고정 단축키 '\(r.1)'와 충돌"
+        }
+        return nil
+    }
 
     var body: some View {
         Form {
@@ -343,51 +364,56 @@ private struct ShortcutsTab: View {
             }
 
             Section("스포트라이트") {
-                Picker("키", selection: $settings.spotlightKeyCode) {
-                    ForEach(spotlightOptions, id: \.0) { code, key in
-                        Text("⌃⌥\(key)").tag(code)
-                    }
-                }
-                .pickerStyle(.segmented).labelsHidden()
+                KeyRecorder(keyCode: $settings.spotlightKeyCode,
+                            conflictMessage: conflictFor(name: "스포트라이트", code: settings.spotlightKeyCode))
             }
 
             Section("키스트로크 표시") {
-                Picker("키", selection: $settings.keystrokeShortcutKeyCode) {
-                    ForEach(keystrokeOptions, id: \.0) { code, key in
-                        Text("⌃⌥\(key)").tag(code)
-                    }
-                }
-                .pickerStyle(.segmented).labelsHidden()
+                KeyRecorder(keyCode: $settings.keystrokeShortcutKeyCode,
+                            conflictMessage: conflictFor(name: "키스트로크", code: settings.keystrokeShortcutKeyCode))
             }
 
             Section("색상 즉시 변경") {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("⌃⌥1 노란색 · ⌃⌥2 빨간색 · ⌃⌥3 파란색")
-                    Text("⌃⌥4 초록색 · ⌃⌥5 하늘색 · ⌃⌥6 보라색")
-                    Text("⌃⌥0 다음 색상으로 순환")
+                    Text("⌃⌥1 노란색 · ⌃⌥2 빨간색 · ⌃⌥3 파란색 · ⌃⌥4 초록색")
+                    Text("⌃⌥5 하늘색 · ⌃⌥6 보라색 · ⌃⌥7 흰색")
+                    Text("⌃⌥C — 다음 색상으로 순환")
                 }
                 .font(.caption).foregroundColor(.secondary)
             }
 
             Section("모양 순환") {
-                Text("⌃⌥7 — 다음 모양으로 (원형 → 둥근 사각형 → 마름모)")
+                Text("⌃⌥H — 다음 모양으로 (원형 → 둥근 사각형 → 마름모)")
                     .font(.caption).foregroundColor(.secondary)
             }
 
             Section("화면 좌표 인스펙터") {
-                Text("⌃⌥I — 좌표 인스펙터 켜기/끄기 (cursor 옆에 (x, y) Quartz 좌표 표시)")
-                    .font(.caption).foregroundColor(.secondary)
+                KeyRecorder(keyCode: $settings.inspectorKeyCode,
+                            conflictMessage: conflictFor(name: "좌표 인스펙터", code: settings.inspectorKeyCode))
+                Text("cursor 옆 (x, y) Quartz 시스템 좌표 표시")
+                    .font(.caption2).foregroundColor(.secondary)
             }
 
             Section("Radial Menu") {
-                Text("⌃⌥Space (누름 유지) — 8개 메뉴가 cursor 자리에 펼쳐짐. 누른 채 마우스를 살짝 움직여 방향 선택, 떼면 그 항목 실행 (중심 근처에서 떼면 취소)")
-                    .font(.caption).foregroundColor(.secondary)
+                KeyRecorder(keyCode: $settings.radialMenuKeyCode,
+                            conflictMessage: conflictFor(name: "Radial Menu", code: settings.radialMenuKeyCode))
+                Text("좌클릭 길게 누름(0.5초)으로도 열림. 8 sector 메뉴, 클릭으로 효과/색/크기 등 즉시 토글, ESC 닫기")
+                    .font(.caption2).foregroundColor(.secondary)
+            }
+
+            Section("그리기 모드") {
+                KeyRecorder(keyCode: $settings.drawingKeyCode,
+                            conflictMessage: conflictFor(name: "그리기 모드", code: settings.drawingKeyCode))
+                Text("펜·직선·화살표·사각형·타원·형광펜·번호 뱃지 — 모디파이어 조합. 모드 활성 중 Cmd+Z 되돌리기, [/] 두께")
+                    .font(.caption2).foregroundColor(.secondary)
             }
 
 
             Section("돋보기") {
-                Text("⌃⌥M — 돋보기 켜기/끄기")
-                    .font(.caption).foregroundColor(.secondary)
+                KeyRecorder(keyCode: $settings.magnifierShortcutKeyCode,
+                            conflictMessage: conflictFor(name: "돋보기", code: settings.magnifierShortcutKeyCode))
+                Text("돋보기 켜기/끄기. 줌은 ⌃⌥= / ⌃⌥- (고정)")
+                    .font(.caption2).foregroundColor(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -684,5 +710,92 @@ private struct ShortcutRow: View {
                 .frame(width: 90, alignment: .leading)
             Text(desc).font(.caption).foregroundColor(.secondary)
         }
+    }
+}
+
+// MARK: - 단축키 자유 입력 (Key Recorder)
+
+/// 클릭 후 키 누르면 keyCode를 binding에 저장. ESC = cancel.
+/// 모디파이어(⌃⌥)는 implicit — main key만 캡처. 환경설정 윈도우 안에서만 동작 (NSEvent local monitor).
+struct KeyRecorder: View {
+    @Binding var keyCode: UInt16
+    let conflictMessage: String?
+    @State private var isRecording = false
+    @State private var monitor: Any?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button(action: toggle) {
+                HStack(spacing: 6) {
+                    Text(isRecording ? "키 누르세요..." : "⌃⌥ \(KeyCodeMap.label(for: keyCode))")
+                        .font(.system(.body, design: .monospaced))
+                    if isRecording {
+                        Text("ESC 취소").font(.caption2).foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .frame(minWidth: 180, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(isRecording ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(isRecording ? Color.accentColor : Color.secondary.opacity(0.4), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            if let conflictMessage {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                    Text(conflictMessage)
+                }
+                .font(.caption2)
+                .foregroundColor(.orange)
+            }
+        }
+        .onDisappear { stopRecording() }
+    }
+
+    private func toggle() {
+        if isRecording { stopRecording() } else { startRecording() }
+    }
+
+    private func startRecording() {
+        isRecording = true
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+            if event.keyCode == 53 {  // ESC
+                stopRecording()
+                return nil
+            }
+            keyCode = event.keyCode
+            stopRecording()
+            return nil
+        }
+    }
+
+    private func stopRecording() {
+        isRecording = false
+        if let m = monitor {
+            NSEvent.removeMonitor(m)
+            monitor = nil
+        }
+    }
+}
+
+/// macOS Virtual Keycode → 표시 라벨. kVK_ANSI 표준 매핑.
+enum KeyCodeMap {
+    static func label(for code: UInt16) -> String {
+        let map: [UInt16: String] = [
+            0:"A", 1:"S", 2:"D", 3:"F", 4:"H", 5:"G", 6:"Z", 7:"X", 8:"C", 9:"V",
+            11:"B", 12:"Q", 13:"W", 14:"E", 15:"R", 16:"Y", 17:"T",
+            18:"1", 19:"2", 20:"3", 21:"4", 22:"6", 23:"5", 25:"9", 26:"7", 28:"8", 29:"0",
+            24:"=", 27:"-", 30:"]", 33:"[",
+            31:"O", 32:"U", 34:"I", 35:"P", 37:"L", 38:"J", 40:"K", 45:"N", 46:"M",
+            39:"'", 41:";", 43:",", 44:"/", 47:".", 50:"`",
+            36:"⏎", 48:"⇥", 49:"Space", 51:"⌫", 53:"⎋", 76:"↩",
+        ]
+        return map[code] ?? "0x\(String(code, radix: 16, uppercase: true))"
     }
 }

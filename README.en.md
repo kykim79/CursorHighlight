@@ -19,7 +19,7 @@ macOS menu bar app. Visually emphasizes the mouse cursor for screen recording, p
 - **Shake Detection** — wave the mouse to flash SOS ring at the cursor
 - **Screenshot Mode** — menu bar toggle. Normally overlay window has `sharingType = .none` (so the magnifier doesn't re-capture itself), but you can flip it to `.readOnly` temporarily for external `screencapture`/OBS. Auto-OFF on app restart.
 - **Radial Menu (⌃⌥,)** — 8-sector menu at cursor position. Click to toggle effects/color/size/shape/magnifier/spotlight; menu stays open for quick multi-adjustments during a presentation. Currently active settings show with a faint accent background.
-- **Drawing Mode (⌃⌥D)** — on-screen annotation for presentations/screencasts. Free pen, straight line (Shift+drag), arrow (Opt+drag). Stroke color follows the ring color. ESC clears all shapes and exits.
+- **Drawing Mode (⌃⌥D)** — on-screen annotation for presentations/screencasts. 7 tools: free pen, line (Shift), arrow (Opt), rectangle (Cmd), ellipse (Cmd+Shift), highlighter (Cmd+Opt), numbered badge (Shift+Opt click). While active: Cmd+Z to undo last shape, `[` / `]` to adjust thickness (5 steps). Stroke color follows the ring color.
 
 ## Shortcuts
 
@@ -38,11 +38,12 @@ All shortcuts use `⌃⌥` (Control + Option):
 | `⌃⌥4` | Green ring |
 | `⌃⌥5` | Cyan ring |
 | `⌃⌥6` | Purple ring |
-| `⌃⌥0` | Cycle to next ring color (quick change during presentation) |
-| `⌃⌥7` | Cycle to next ring shape (circle ↔ squircle ↔ rhombus) |
+| `⌃⌥7` | White ring |
+| `⌃⌥C` | Cycle to next ring color |
+| `⌃⌥H` | Cycle to next ring shape (circle ↔ squircle ↔ rhombus) |
 | `⌃⌥I` | Inspector — show (x, y) system coordinates next to the cursor |
 | `⌃⌥,` | **Radial Menu** — 8-sector mouse menu. Click to toggle effects/color/size/shape/magnifier/spotlight instantly; menu stays open for multi-adjustments. ESC to close |
-| `⌃⌥D` | **Toggle Drawing Mode** — on-screen annotation. Drag=pen / **Shift**+drag=line / **Opt**+drag=arrow. ESC=clear+exit. Color follows current ring color |
+| `⌃⌥D` | **Toggle Drawing Mode** — on-screen annotation. While active: Drag=pen / **Shift**+drag=line / **Opt**+drag=arrow / **Cmd**+drag=rectangle / **Cmd+Shift**+drag=ellipse / **Cmd+Opt**+drag=highlighter / **Shift+Opt**+click=numbered badge. While active: **Cmd+Z**=undo last shape, **`[`** / **`]`**=adjust thickness, **ESC**=clear+exit. Color follows current ring color |
 
 Some shortcuts are configurable in Preferences (menu bar → Preferences).
 

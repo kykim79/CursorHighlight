@@ -27,6 +27,13 @@ final class CursorSettings: ObservableObject {
     @Persisted("magnifierZoom", default: 2.0, debounce: 0.3) var magnifierZoom: Double
     @Persisted("magnifierSize", default: CGFloat(200), debounce: 0.3) var magnifierSize: CGFloat
     @Persisted("magnifierKeyCode", default: UInt16(46)) var magnifierShortcutKeyCode: UInt16  // M key
+    // v0.7.0 추가 — 충돌 회피용 재정의
+    @Persisted("radialMenuKeyCode", default: UInt16(43)) var radialMenuKeyCode: UInt16   // , key (콤마)
+    @Persisted("drawingKeyCode", default: UInt16(2)) var drawingKeyCode: UInt16          // D key
+    @Persisted("inspectorKeyCode", default: UInt16(34)) var inspectorKeyCode: UInt16     // I key
+    // 그리기 toolbar 위치 (좌측 padding / 하단 padding, pt). 사용자가 drag로 이동 가능.
+    @Persisted("drawingToolbarLeading", default: CGFloat(28)) var drawingToolbarLeading: CGFloat
+    @Persisted("drawingToolbarBottom", default: CGFloat(110)) var drawingToolbarBottom: CGFloat
     @Persisted("borderWeight", default: BorderWeight.normal) var borderWeight: BorderWeight
     @Persisted("borderStyle", default: BorderStyle.solid) var borderStyle: BorderStyle
     @Persisted("perspectiveWarping", default: false) var isPerspectiveWarping: Bool
@@ -116,8 +123,10 @@ final class CursorSettings: ObservableObject {
     }
 
     // MARK: - Enums
+    /// 단축키 순서로 정렬 (⌃⌥1~7) — toolbar dot 자동 정렬, ⌃⌥C 순환도 같은 순.
+    /// custom은 환경설정에서 별도 선택, allCases.filter { $0 != .custom }로 제외.
     enum RingColor: String, CaseIterable, Identifiable {
-        case yellow, red, blue, green, white, cyan, purple, custom
+        case yellow, red, blue, green, cyan, purple, white, custom
         var id: String { rawValue }
 
         var color: Color {
@@ -144,6 +153,9 @@ final class CursorSettings: ObservableObject {
             case .custom: return "커스텀"
             }
         }
+
+        /// 색 위에 어두운 텍스트가 가독성 좋은가 — Color.needsDarkText에 위임 (휘도 기준, custom 색도 자동).
+        var needsDarkText: Bool { color.needsDarkText }
     }
 
     /// Radial Menu (⌃⌥,) 8개 메인 sector — rawValue = sector index (12시=0, 시계방향 45°).

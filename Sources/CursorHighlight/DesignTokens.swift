@@ -1,4 +1,16 @@
 import SwiftUI
+import AppKit
+
+extension Color {
+    /// WCAG 휘도 기준 — 밝은 색이면 검정 텍스트가 더 잘 보임.
+    /// L = 0.299R + 0.587G + 0.114B (sRGB linear approx). > 0.6 = 밝은 색.
+    /// 뱃지 숫자, toolbar 색 단축키 hint 등 색 위에 텍스트 얹는 모든 곳에서 사용.
+    var needsDarkText: Bool {
+        let ns = NSColor(self).usingColorSpace(.sRGB) ?? NSColor.gray
+        let l = 0.299 * ns.redComponent + 0.587 * ns.greenComponent + 0.114 * ns.blueComponent
+        return l > 0.6
+    }
+}
 
 // MARK: - DesignTokens
 //
@@ -89,6 +101,10 @@ enum Tokens {
         static let edgeClamp: CGFloat = 240
         /// 캔버스 전체 크기 (subOuter*2 + padding)
         static var canvasSize: CGFloat { subOuter * 2 + 40 }
+        /// 좌클릭 hold로 라디얼 메뉴 열리는 시간 임계 — 일반 클릭과 구분되는 최소 시간
+        static let longPressDuration: TimeInterval = 0.5
+        /// hold 중 허용되는 cursor 이동 거리 — 초과 시 드래그로 간주, long-press cancel
+        static let longPressDeadband: CGFloat = 5
     }
 
     // MARK: Radius — corner radius 스케일
@@ -118,12 +134,66 @@ enum Tokens {
     // MARK: Drawing — ⌃⌥D 그리기 도형 (펜·직선·화살표)
 
     enum Drawing {
-        /// 모든 도형 stroke 두께 — 발표 시 시청자 가시성 + 너무 굵지 않은 균형
+        /// 기본 stroke 두께 — 발표 시 시청자 가시성 + 너무 굵지 않은 균형. [/] 키 조절 baseline.
         static let lineWidth: CGFloat = 4
+        /// 두께 조절 단계 — [ ] 키로 순환. 5단계로 충분.
+        static let lineWidthSteps: [CGFloat] = [2, 4, 6, 10, 14]
         /// 화살표 머리(arrowhead) 양 변 길이
         static let arrowHeadLength: CGFloat = 16
         /// 화살표 머리 양 변이 shaft에서 벌어지는 각도 (라디안). 30° = 일반적인 가독성 균형
         static let arrowHeadAngle: CGFloat = .pi / 6
+        /// 형광펜 stroke 두께 — 영역 강조용. 일반 stroke의 6~7배.
+        static let highlighterWidth: CGFloat = 25
+        /// 형광펜 alpha — 본문이 비치는 투명도. accent color * 0.35.
+        static let highlighterOpacity: Double = 0.35
+        /// 번호 뱃지 원 반지름 (직경 32pt).
+        static let badgeRadius: CGFloat = 16
+        /// 번호 뱃지 외곽선 두께
+        static let badgeBorderWidth: CGFloat = 2
+        /// 번호 뱃지 텍스트 크기
+        static let badgeFontSize: CGFloat = 14
+
+        // MARK: Toolbar — 그리기 모드 좌측 하단 도구바 (v0.7.0)
+        enum Toolbar {
+            /// 외곽 padding (좌우/상하)
+            static let padding: CGFloat = 16
+            /// 모서리 radius
+            static let cornerRadius: CGFloat = 14
+            /// Divider 두께 / opacity
+            static let dividerHeight: CGFloat = 48
+            static let dividerOpacity: Double = 0.2
+            /// 외곽 border opacity
+            static let borderOpacity: Double = 0.18
+            /// 도구 icon 원 지름 + glyph 크기 (primary visual weight)
+            static let toolCircle: CGFloat = 36
+            static let toolGlyph: CGFloat = 17
+            /// 도구 라벨 / modifier hint 크기
+            static let toolLabelSize: CGFloat = 12
+            static let toolModifierSize: CGFloat = 10
+            /// 두께/색 섹션 라벨 크기 (secondary)
+            static let sectionLabelSize: CGFloat = 11
+            static let sectionHintSize: CGFloat = 9
+            /// Cheat sheet 크기 (tertiary)
+            static let cheatSize: CGFloat = 9
+            /// 색 dot 지름 + 클릭 영역 (둘 다 짝수 → selection ring 중심선 픽셀 정렬)
+            static let colorDot: CGFloat = 16
+            static let colorHitArea: CGFloat = 24
+            /// 두께 dot 클릭 영역 (실제 dot 크기는 width 비례 4~12pt)
+            static let thicknessHitArea: CGFloat = 24
+            /// Drag handle dot 크기 / 간격
+            static let dragHandleDot: CGFloat = 3
+            static let dragHandleDotSpacing: CGFloat = 4
+            /// 반응형 임계 — screen 너비 미만이면 cheat sheet 숨김
+            static let cheatSheetHideBelow: CGFloat = 1200
+            /// 첫 N회 drawing mode 켤 때 onboarding capsule 표시 (B redesign 후 정보량 늘어 5회)
+            static let onboardingShowCount: Int = 5
+            /// Onboarding capsule 표시 지속 시간 (초). 정보량 늘어 6초.
+            static let onboardingDuration: TimeInterval = 6.0
+            /// 선택 표시 ring 두께 — 도구/색/두께 모두 통일 (modern consistency).
+            static let selectionRingWidth: CGFloat = 2.0
+            /// 도구 그룹과 두께/색 그룹 사이 간격 — divider 대신 spacing으로 group 분리 (Sketch/Figma 패턴).
+            static let groupSpacing: CGFloat = 18
+        }
     }
 
     // MARK: Text — 시스템 폰트 역할별 토큰

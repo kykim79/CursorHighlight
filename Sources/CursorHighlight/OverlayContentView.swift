@@ -69,36 +69,7 @@ struct OverlayContentView: View {
                 DragAngleLabel(position: localPos, angleRadians: runtime.dragAngle, distance: dragDistance)
             }
             // Radial Menu (⌃⌥Space hold) — 메인 8개 sector + 서브 fan (해당 sector 활성 시).
-            // 150ms 이상 hold 시에만 시각 표시 (marking mode — 빠른 release면 sector 계산은 진행되어도 메뉴 안 보임).
-            if runtime.isRadialMenuActive && runtime.isRadialMenuVisible && screenFrame.contains(runtime.radialMenuCenter) {
-                let currentValues: [String] = (0..<8).map { i in
-                    CursorSettings.RadialMenuItem(rawValue: i)?.currentValue(settings: settings, runtime: runtime) ?? ""
-                }
-                // 활성 sector의 sub들 중 현재 설정값/활성 상태인 것을 미리 계산해서 RadialMenuView에 전달.
-                // 사용자가 sub region 진입 전부터 "어떤 게 현재 활성인지" 보임 → 어디로 끌어야 할지 즉시 판단.
-                let subActiveStates: [Bool]? = runtime.radialMenuSelectedSector.flatMap { sec in
-                    CursorSettings.RadialMenuItem(rawValue: sec).map { item in
-                        (0..<item.subCount).map { item.isSubCurrent(at: $0, settings: settings, runtime: runtime) }
-                    }
-                }
-                RadialMenuView(
-                    center: toLocal(runtime.radialMenuCenter),
-                    selectedSector: runtime.radialMenuSelectedSector,
-                    selectedSubItem: runtime.radialMenuSelectedSubItem,
-                    currentValues: currentValues,
-                    subActiveStates: subActiveStates,
-                    showHelp: runtime.radialMenuShowHelp,
-                    accentColor: effectiveColor
-                )
-                // 메뉴 활성 동안 cursor 위치에 작은 흰 ring — 사용자가 자기 cursor 위치 인지 단서
-                if cursorOnScreen {
-                    Circle()
-                        .stroke(Tokens.Stroke.cursor, lineWidth: 1.5)
-                        .frame(width: 14, height: 14)
-                        .position(localPos)
-                        .allowsHitTesting(false)
-                }
-            }
+            // Radial Menu는 effects/돋보기보다 위 z-order로 렌더 — 아래 magnifier 블록 뒤로 이동 (v0.7.0)
 
             // 화면 좌표 인스펙터 (⌃⌥I 토글) — cursor 우하단에 Quartz(top-left) 시스템 좌표.
             if runtime.isInspectorActive && cursorOnScreen {
@@ -188,6 +159,35 @@ struct OverlayContentView: View {
                 )
             }
 
+            // Radial Menu (⌃⌥, toggle) — effects/돋보기 위에 표시. 사용자가 메뉴 활성 중 돋보기 토글해도 메뉴 가려지지 않음.
+            if runtime.isRadialMenuActive && runtime.isRadialMenuVisible && screenFrame.contains(runtime.radialMenuCenter) {
+                let currentValues: [String] = (0..<8).map { i in
+                    CursorSettings.RadialMenuItem(rawValue: i)?.currentValue(settings: settings, runtime: runtime) ?? ""
+                }
+                let subActiveStates: [Bool]? = runtime.radialMenuSelectedSector.flatMap { sec in
+                    CursorSettings.RadialMenuItem(rawValue: sec).map { item in
+                        (0..<item.subCount).map { item.isSubCurrent(at: $0, settings: settings, runtime: runtime) }
+                    }
+                }
+                RadialMenuView(
+                    center: toLocal(runtime.radialMenuCenter),
+                    selectedSector: runtime.radialMenuSelectedSector,
+                    selectedSubItem: runtime.radialMenuSelectedSubItem,
+                    currentValues: currentValues,
+                    subActiveStates: subActiveStates,
+                    showHelp: runtime.radialMenuShowHelp,
+                    accentColor: effectiveColor
+                )
+                // 메뉴 활성 동안 cursor 위치에 작은 흰 ring — 사용자가 자기 cursor 위치 인지 단서
+                if cursorOnScreen {
+                    Circle()
+                        .stroke(Tokens.Stroke.cursor, lineWidth: 1.5)
+                        .frame(width: 14, height: 14)
+                        .position(localPos)
+                        .allowsHitTesting(false)
+                }
+            }
+
             // 그리기 (⌃⌥D) — 도형 + 진행 중 stroke. radial menu·spotlight·magnifier 위에 그려짐.
             ForEach(drawing.shapes) { shape in
                 DrawnShapeView(shape: shape, screenFrame: screenFrame)
@@ -205,6 +205,56 @@ struct OverlayContentView: View {
                     .allowsHitTesting(false)
             }
 
+            // 좌측 하단 toolbar — 그리기 모드 활성 중. Cursor 있는 screen에만 표시 (multi-monitor 시 따라옴).
+            // 위치는 settings.drawingToolbar(Leading/Bottom)으로 persist — 사용자가 drag handle로 이동.
+            // Modern Option B: 라벨/cheat 제거. 모디파이어/단축키는 onboarding capsule + 도구 클릭 알림으로 전달.
+            if drawing.isDrawingModeActive && screenFrame.contains(runtime.cursorPosition) {
+                VStack {
+                    Spacer()
+                    HStack(alignment: .bottom) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // First-time onboarding capsule — 첫 5회만, 6초간. 모디파이어 + 단축키 전체 cheat.
+                            if drawing.showOnboarding {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("⇧ 직선 · ⌥ 화살표 · ⌘ 사각형 · ⌘⇧ 타원 · ⌘⌥ 형광펜 · ⇧⌥+클릭 뱃지")
+                                    Text("[ / ] 두께 · ⌃⌥1~7 색 · ⌃⌥C 순환 · ⌘Z 되돌리기 · ESC 닫기")
+                                        .foregroundColor(.white.opacity(0.75))
+                                }
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(.regularMaterial))
+                                .environment(\.colorScheme, .dark)
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(effectiveColor.opacity(0.6), lineWidth: 1))
+                                .shadow(color: .black.opacity(0.3), radius: 8, y: 2)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                            }
+                            DrawingToolbarView(drawing: drawing, settings: settings, accentColor: effectiveColor)
+                        }
+                        .animation(.easeOut(duration: 0.2), value: drawing.showOnboarding)
+                        .padding(.leading, settings.drawingToolbarLeading)
+                        .padding(.bottom, settings.drawingToolbarBottom)
+                        Spacer()
+                    }
+                }
+                .onPreferenceChange(ToolFramePreference.self) { frames in
+                    drawing.toolbarFrames = frames.mapValues { swiftUIToCocoa($0) }
+                }
+                .onPreferenceChange(ThicknessFramePreference.self) { frames in
+                    drawing.thicknessFrames = frames.mapValues { swiftUIToCocoa($0) }
+                }
+                .onPreferenceChange(ColorFramePreference.self) { frames in
+                    drawing.colorFrames = frames.mapValues { swiftUIToCocoa($0) }
+                }
+                .onPreferenceChange(DragHandleFramePreference.self) { frame in
+                    drawing.dragHandleFrame = swiftUIToCocoa(frame)
+                }
+                .onPreferenceChange(ToolbarSizePreference.self) { size in
+                    drawing.toolbarSize = size
+                }
+            }
+
             // 키스트로크 / 상태 알림 (항상 트리에 포함 - 비활성 시 알림도 표시되어야 함)
             KeystrokeDisplayView(
                 text: keystroke.keystrokeText,
@@ -218,6 +268,17 @@ struct OverlayContentView: View {
 
     private func toLocal(_ p: CGPoint) -> CGPoint {
         CGPoint(x: p.x - screenFrame.minX, y: screenFrame.maxY - p.y)
+    }
+
+    /// SwiftUI .global frame(top-left origin within overlay window) → Cocoa global rect(bottom-left).
+    /// Overlay window는 screenFrame과 일치하므로 변환식: cocoaY = screenFrame.maxY - swiftuiMaxY.
+    private func swiftUIToCocoa(_ f: CGRect) -> CGRect {
+        CGRect(
+            x: screenFrame.minX + f.minX,
+            y: screenFrame.maxY - f.maxY,
+            width: f.width,
+            height: f.height
+        )
     }
 }
 
@@ -1384,12 +1445,11 @@ struct SwipeVisualView: View {
 // MARK: - 그리기 도형 (#19, ⌃⌥D)
 
 /// Quartz 좌표(원점 top-left) → overlay 로컬 좌표(원점 top-left, screenFrame 기준) 변환 후 Canvas로 stroke.
-/// 펜: 모든 점 line join. 직선: [start, end]. 화살표: 직선 + 끝에 ±30° arrowhead.
+/// 도구 7종: 펜·직선·화살표·사각형·타원·형광펜·뱃지 — 각각 다른 렌더 분기.
 struct DrawnShapeView: View {
     let shape: DrawingState.Shape
     let screenFrame: CGRect
 
-    private let lineWidth = Tokens.Drawing.lineWidth
     private let headLen = Tokens.Drawing.arrowHeadLength
     private let headAngle = Tokens.Drawing.arrowHeadAngle
 
@@ -1400,7 +1460,8 @@ struct DrawnShapeView: View {
                 CGPoint(x: p.x - screenFrame.minX, y: screenFrame.maxY - p.y)
             }
             guard pts.count >= 1 else { return }
-            let stroke = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+            let lw = shape.lineWidth
+            let stroke = StrokeStyle(lineWidth: lw, lineCap: .round, lineJoin: .round)
 
             switch shape.tool {
             case .pen:
@@ -1422,7 +1483,6 @@ struct DrawnShapeView: View {
                 shaft.move(to: start)
                 shaft.addLine(to: end)
                 context.stroke(shaft, with: .color(shape.color), style: stroke)
-                // arrowhead — end 기준 ±30°, 길이 16
                 let dx = end.x - start.x
                 let dy = end.y - start.y
                 let angle = atan2(dy, dx)
@@ -1435,8 +1495,296 @@ struct DrawnShapeView: View {
                 head.addLine(to: end)
                 head.addLine(to: p2)
                 context.stroke(head, with: .color(shape.color), style: stroke)
+            case .rectangle:
+                guard pts.count >= 2 else { return }
+                let r = CGRect(x: min(pts[0].x, pts[1].x), y: min(pts[0].y, pts[1].y),
+                               width: abs(pts[1].x - pts[0].x), height: abs(pts[1].y - pts[0].y))
+                context.stroke(Path(r), with: .color(shape.color), style: stroke)
+            case .ellipse:
+                guard pts.count >= 2 else { return }
+                let r = CGRect(x: min(pts[0].x, pts[1].x), y: min(pts[0].y, pts[1].y),
+                               width: abs(pts[1].x - pts[0].x), height: abs(pts[1].y - pts[0].y))
+                context.stroke(Path(ellipseIn: r), with: .color(shape.color), style: stroke)
+            case .highlighter:
+                // pen과 같은 path지만 굵고 반투명 — "이 영역 보세요"
+                var path = Path()
+                path.move(to: pts[0])
+                for p in pts.dropFirst() { path.addLine(to: p) }
+                let hStroke = StrokeStyle(lineWidth: Tokens.Drawing.highlighterWidth, lineCap: .round, lineJoin: .round)
+                context.stroke(path, with: .color(shape.color.opacity(Tokens.Drawing.highlighterOpacity)), style: hStroke)
+            case .badge:
+                // 번호 뱃지 — 채워진 원 + 외곽선 + 가운데 숫자. 휘도 기준으로 contrast 자동 (밝은 색 = 검정 텍스트).
+                guard let number = shape.badgeNumber else { return }
+                let center = pts[0]
+                let radius = Tokens.Drawing.badgeRadius
+                let rect = CGRect(x: center.x - radius, y: center.y - radius,
+                                  width: radius * 2, height: radius * 2)
+                context.fill(Path(ellipseIn: rect), with: .color(shape.color))
+                let darkText = shape.color.needsDarkText
+                let strokeColor: Color = darkText ? .black.opacity(0.55) : .white.opacity(0.85)
+                context.stroke(Path(ellipseIn: rect),
+                               with: .color(strokeColor),
+                               style: StrokeStyle(lineWidth: Tokens.Drawing.badgeBorderWidth))
+                let text = Text("\(number)")
+                    .font(.system(size: Tokens.Drawing.badgeFontSize, weight: .bold))
+                    .foregroundColor(darkText ? .black : .white)
+                context.draw(text, at: center, anchor: .center)
             }
         }
         .allowsHitTesting(false)
+    }
+}
+
+// MARK: - 그리기 모드 toolbar (v0.7.0)
+
+/// 도구 버튼 영역(SwiftUI .global 좌표) 측정용. OverlayContentView가 Cocoa global로 변환해 drawing.toolbarFrames에 저장.
+struct ToolFramePreference: PreferenceKey {
+    static var defaultValue: [DrawingState.Tool: CGRect] = [:]
+    static func reduce(value: inout [DrawingState.Tool: CGRect], nextValue: () -> [DrawingState.Tool: CGRect]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
+/// 두께 dot 영역 측정.
+struct ThicknessFramePreference: PreferenceKey {
+    static var defaultValue: [CGFloat: CGRect] = [:]
+    static func reduce(value: inout [CGFloat: CGRect], nextValue: () -> [CGFloat: CGRect]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
+/// 색 dot 영역 측정. 키는 RingColor.rawValue.
+struct ColorFramePreference: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
+/// Drag handle 영역 측정 — 단일 frame.
+struct DragHandleFramePreference: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let n = nextValue()
+        if n != .zero { value = n }
+    }
+}
+
+/// Toolbar 전체 크기 측정 — clamp 계산에 사용 (실제 너비 알아야 정확한 한계).
+struct ToolbarSizePreference: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        let n = nextValue()
+        if n != .zero { value = n }
+    }
+}
+
+/// 좌측 하단 modern floating panel — 도구 7 + 두께 5 + 색 7. Modifier에 따라 active 도구 실시간 강조.
+/// 라벨/cheat sheet 제거 (Apple Notes·Figma·Linear 패턴). 모디파이어/단축키는 onboarding capsule 5회 + 도구 클릭 알림으로 전달.
+/// Vibrancy material + 통일된 selection ring으로 modern feel.
+struct DrawingToolbarView: View {
+    @ObservedObject var drawing: DrawingState
+    @ObservedObject var settings: CursorSettings
+    let accentColor: Color
+
+    private struct ToolSpec {
+        let tool: DrawingState.Tool
+        let icon: String
+    }
+
+    private let specs: [ToolSpec] = [
+        .init(tool: .pen,         icon: "scribble.variable"),
+        .init(tool: .line,        icon: "line.diagonal"),
+        .init(tool: .arrow,       icon: "arrow.up.right"),
+        .init(tool: .rectangle,   icon: "rectangle"),
+        .init(tool: .ellipse,     icon: "circle"),
+        .init(tool: .highlighter, icon: "highlighter"),
+        .init(tool: .badge,       icon: "1.circle.fill"),
+    ]
+
+    var body: some View {
+        let active = drawing.previewTool
+        HStack(spacing: Tokens.Drawing.Toolbar.groupSpacing) {
+            // Drag handle (좌측, 작게) — 클릭+드래그로 toolbar 이동
+            dragHandle
+            // 7 도구 — primary 영역, 라벨/모디파이어 hint 제거
+            HStack(spacing: 6) {
+                ForEach(specs.indices, id: \.self) { i in
+                    toolButton(specs[i], isActive: specs[i].tool == active)
+                }
+            }
+            // 두께 5단계 — section 라벨 제거, dot만
+            HStack(spacing: 4) {
+                ForEach(Tokens.Drawing.lineWidthSteps, id: \.self) { w in
+                    thicknessButton(width: w)
+                }
+            }
+            // 색 7가지 — section 라벨 제거, dot만. 각 dot에 단축키 번호 overlay (a11y).
+            HStack(spacing: 4) {
+                ForEach(CursorSettings.RingColor.allCases.filter { $0 != .custom }) { c in
+                    colorButton(color: c)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        // Vibrancy material — modern macOS Sonoma+ floating panel 컨벤션. Dark mode 강제로 발표 콘텐츠와 색 충돌 회피.
+        .background(.regularMaterial)
+        .environment(\.colorScheme, .dark)
+        .overlay(
+            RoundedRectangle(cornerRadius: Tokens.Drawing.Toolbar.cornerRadius)
+                .stroke(Color.white.opacity(Tokens.Drawing.Toolbar.borderOpacity), lineWidth: 0.5)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: Tokens.Drawing.Toolbar.cornerRadius))
+        .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+        // 전체 size 측정 — clamp 계산용
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(key: ToolbarSizePreference.self, value: geo.size)
+            }
+        )
+        .allowsHitTesting(false)
+    }
+
+    @ViewBuilder
+    private func toolButton(_ spec: ToolSpec, isActive: Bool) -> some View {
+        let isSelected = drawing.selectedTool == spec.tool
+        // 색은 외곽 ring(작은 면적)에만 들어가고 배경/glyph는 ringColor 무관 고정.
+        // → ringColor 변경 시 luminance contrast 문제 발생 안 함.
+        ZStack {
+            Circle()
+                .fill(isActive ? Color.white.opacity(0.18) : Color.white.opacity(0.08))
+                .frame(width: Tokens.Drawing.Toolbar.toolCircle, height: Tokens.Drawing.Toolbar.toolCircle)
+            // active(preview) = 진한 ringColor ring / sticky-only = 옅은 ring (modifier 떼면 복귀할 곳)
+            if isActive {
+                Circle()
+                    .stroke(accentColor, lineWidth: Tokens.Drawing.Toolbar.selectionRingWidth)
+                    .frame(width: Tokens.Drawing.Toolbar.toolCircle, height: Tokens.Drawing.Toolbar.toolCircle)
+            } else if isSelected {
+                Circle()
+                    .stroke(accentColor.opacity(0.45), lineWidth: 1)
+                    .frame(width: Tokens.Drawing.Toolbar.toolCircle, height: Tokens.Drawing.Toolbar.toolCircle)
+            }
+            Image(systemName: spec.icon)
+                .font(.system(size: Tokens.Drawing.Toolbar.toolGlyph, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: ToolFramePreference.self,
+                    value: [spec.tool: geo.frame(in: .global)]
+                )
+            }
+        )
+        .animation(.easeOut(duration: 0.12), value: isActive)
+    }
+
+    @ViewBuilder
+    private func thicknessButton(width w: CGFloat) -> some View {
+        let isSelected = abs(w - drawing.lineWidth) < 0.01
+        // 두께 dot은 "두께"를 시각화 — 색은 무관(고정 grayscale). selection은 외곽 ringColor ring.
+        ZStack {
+            // hit-test 영역 — 작은 dot이라도 클릭 area 넓게
+            Color.clear.frame(width: Tokens.Drawing.Toolbar.thicknessHitArea, height: Tokens.Drawing.Toolbar.thicknessHitArea)
+            Circle()
+                .fill(Color.white.opacity(isSelected ? 0.85 : 0.30))
+                .frame(width: w * 0.6 + 4, height: w * 0.6 + 4)  // 두께 비례
+            if isSelected {
+                Circle()
+                    .stroke(accentColor, lineWidth: Tokens.Drawing.Toolbar.selectionRingWidth)
+                    .frame(width: w * 0.6 + 8, height: w * 0.6 + 8)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: ThicknessFramePreference.self,
+                    value: [w: geo.frame(in: .global)]
+                )
+            }
+        )
+        .animation(.easeOut(duration: 0.12), value: isSelected)
+    }
+
+    /// Compact drag grip (좌측). 4 dot (2x2)으로 6 dot 대비 시각 노이즈 ↓ — modern minimal.
+    /// 클릭 + 드래그로 toolbar 이동.
+    private var dragHandle: some View {
+        VStack(spacing: Tokens.Drawing.Toolbar.dragHandleDotSpacing) {
+            ForEach(0..<2) { _ in
+                HStack(spacing: Tokens.Drawing.Toolbar.dragHandleDotSpacing) {
+                    Circle().fill(Color.white.opacity(drawing.isDraggingToolbar ? 0.95 : 0.4))
+                        .frame(width: Tokens.Drawing.Toolbar.dragHandleDot, height: Tokens.Drawing.Toolbar.dragHandleDot)
+                    Circle().fill(Color.white.opacity(drawing.isDraggingToolbar ? 0.95 : 0.4))
+                        .frame(width: Tokens.Drawing.Toolbar.dragHandleDot, height: Tokens.Drawing.Toolbar.dragHandleDot)
+                }
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 14)
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: DragHandleFramePreference.self,
+                    value: geo.frame(in: .global)
+                )
+            }
+        )
+        .animation(.easeOut(duration: 0.12), value: drawing.isDraggingToolbar)
+    }
+
+    /// 색 → 단축키 번호 매핑 (a11y secondary 채널 — 색맹 사용자도 식별 가능).
+    /// ⌃⌥1~7 색 직접, ⌃⌥C 색 순환. 숫자는 색 전용 (확장 안전).
+    private func keyHint(for color: CursorSettings.RingColor) -> String? {
+        switch color {
+        case .yellow: return "1"
+        case .red:    return "2"
+        case .blue:   return "3"
+        case .green:  return "4"
+        case .cyan:   return "5"
+        case .purple: return "6"
+        case .white:  return "7"
+        case .custom: return nil
+        }
+    }
+
+    @ViewBuilder
+    private func colorButton(color: CursorSettings.RingColor) -> some View {
+        let isSelected = settings.ringColor == color
+        let hint = keyHint(for: color)
+        ZStack {
+            Color.clear.frame(width: Tokens.Drawing.Toolbar.colorHitArea, height: Tokens.Drawing.Toolbar.colorHitArea)
+            Circle()
+                .fill(color.color)
+                .overlay(Circle().stroke(Color.white.opacity(0.4), lineWidth: 1))
+                .frame(width: Tokens.Drawing.Toolbar.colorDot, height: Tokens.Drawing.Toolbar.colorDot)
+            if isSelected {
+                // 짝수 hit area(24) - 2 = 22 짝수 → ZStack 중심선 픽셀 정렬 (sub-pixel 어긋남 X)
+                // 밝은 dot(흰·노란·하늘)은 흰 ring이 본체와 union되므로 검정으로 반전
+                Circle()
+                    .stroke(color.needsDarkText ? Color.black.opacity(0.85) : Color.white.opacity(0.95),
+                            lineWidth: Tokens.Drawing.Toolbar.selectionRingWidth)
+                    .frame(width: Tokens.Drawing.Toolbar.colorHitArea - 2, height: Tokens.Drawing.Toolbar.colorHitArea - 2)
+            }
+            // 단축키 번호 overlay — 색 외 두번째 식별 채널.
+            // 휘도 기준 contrast: 밝은 색(yellow/white/green/cyan)엔 검정, 어두운 색(red/blue/purple)엔 흰. 양쪽 다 반대 색 그림자로 대비 강화.
+            if let hint {
+                let darkText = color.needsDarkText
+                Text(hint)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(darkText ? .black.opacity(0.85) : .white.opacity(0.95))
+                    .shadow(color: (darkText ? Color.white : Color.black).opacity(0.4), radius: 0.5)
+                    .frame(width: Tokens.Drawing.Toolbar.colorDot, height: Tokens.Drawing.Toolbar.colorDot, alignment: .center)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: ColorFramePreference.self,
+                    value: [color.rawValue: geo.frame(in: .global)]
+                )
+            }
+        )
+        .animation(.easeOut(duration: 0.12), value: isSelected)
     }
 }

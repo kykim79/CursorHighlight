@@ -545,6 +545,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !runtime.isCursorVisible { runtime.isCursorVisible = true }
         if runtime.glowMultiplier > 1.0 { runtime.glowMultiplier = 1.0 }
 
+        // 그리기 모드 활성 시 toolbar preview 도구 동기화 — flagsChanged가 못 잡는 케이스 보완
+        if drawing.isDrawingModeActive {
+            let mods = NSEvent.modifierFlags
+            if drawing.currentModifiers != mods {
+                drawing.currentModifiers = mods
+            }
+        }
+
         let now = Date().timeIntervalSinceReferenceDate
 
         // cursorPosition 업데이트는 60Hz throttle (고DPI 마우스 1000Hz 대비)
@@ -674,10 +682,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self.keyboardHotkeyHandler?.handleRadialMenuClick()
                     return
                 }
-                // 그리기 모드 — 새 도형 시작. 모디파이어로 도구 결정 (Shift=직선 / Opt=화살표 / 그 외 펜)
+                // 그리기 모드 — drag handle / 도구 / 두께 / 색 hit-test 순. 적중 시 startShape 안 함.
                 if self.drawing.isDrawingModeActive {
+                    let pos = self.runtime.cursorPosition
+                    // drag handle 클릭 — toolbar 이동 모드 진입
+                    if self.drawing.dragHandleFrame.contains(pos) {
+                        self.drawing.beginToolbarDrag(
+                            cursor: pos,
+                            leading: self.settings.drawingToolbarLeading,
+                            bottom: self.settings.drawingToolbarBottom
+                        )
+                        return
+                    }
+                    if self.drawing.hitToolbarAndSelect(at: pos) {
+                        // Label 제거 후 도구 식별을 알림으로 — "✏️ 도구 · 직선"
+                        self.keystrokeOverlay.showStatusNotification("✏️ 도구 · \(self.drawing.selectedTool.displayName)")
+                        return
+                    }
+                    if self.drawing.hitThicknessAndSelect(at: pos) {
+                        self.keystrokeOverlay.showStatusNotification("✏️ 두께 · \(Int(self.drawing.lineWidth))pt")
+                        return
+                    }
+                    if let name = self.drawing.colorAt(pos),
+                       let color = CursorSettings.RingColor(rawValue: name) {
+                        self.settings.ringColor = color
+                        self.keystrokeOverlay.showStatusNotification("🎨 \(color.label)")
+                        return
+                    }
                     self.drawing.startShape(
-                        at: self.runtime.cursorPosition,
+                        at: pos,
                         modifiers: NSEvent.modifierFlags,
                         color: self.settings.effectiveRingColor
                     )
@@ -689,11 +722,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             monitor?.onDrawingDrag = { [weak self] _ in
                 guard let self else { return }
+                // Toolbar 이동 드래그 중이면 위치 갱신 (shape 시작 안 했음)
+                if let delta = self.drawing.toolbarDragDelta(to: self.runtime.cursorPosition) {
+                    let screen = NSScreen.screens.first?.frame.size ?? CGSize(width: 1440, height: 900)
+                    // 실제 toolbar 크기 기반 clamp — 측정값 있으면 사용, 없으면 보수적 추정
+                    let tbWidth = self.drawing.toolbarSize.width > 0 ? self.drawing.toolbarSize.width : 800
+                    let tbHeight = self.drawing.toolbarSize.height > 0 ? self.drawing.toolbarSize.height : 100
+                    let safetyMargin: CGFloat = 8  // 화면 가장자리 여유
+                    let maxLeading = max(0, screen.width - tbWidth - safetyMargin)
+                    let maxBottom = max(0, screen.height - tbHeight - safetyMargin)
+                    self.settings.drawingToolbarLeading = max(safetyMargin, min(maxLeading, delta.leading))
+                    self.settings.drawingToolbarBottom = max(safetyMargin, min(maxBottom, delta.bottom))
+                    return
+                }
                 self.drawing.updateShape(to: self.runtime.cursorPosition)
             }
             monitor?.onDrawingRelease = { [weak self] _ in
                 guard let self else { return }
+                if self.drawing.isDraggingToolbar {
+                    self.drawing.endToolbarDrag()
+                    return
+                }
                 self.drawing.endShape()
+            }
+            // 좌클릭 long-press → 라디얼 메뉴 열기. 키보드 손 이동 없이 마우스 hold만으로 접근.
+            monitor?.onLongPress = { [weak self] _ in
+                self?.keyboardHotkeyHandler?.openRadialMenu()
             }
             monitor?.onRightClick = { [weak self] _ in
                 guard let self else { return }

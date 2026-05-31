@@ -79,14 +79,15 @@ final class KeyboardHotkeyHandler {
     /// ⌃⌥ 단축키로 우리가 처리(=삼킬) keyCode 집합. 고정 키 + 환경설정 가변 키.
     private func updateConsumableCodes() {
         guard let settings else { return }
-        // 고정: 줌(24,27), 색상 1~6(18,19,20,21,23,22), 색상순환(29),
-        //       모양순환(26=7), 인스펙터(34=I), Radial Menu(43=콤마 — ⌘, 설정 컨벤션과 의미 일치),
-        //       그리기 모드(2=D)
-        var codes: Set<Int64> = [24, 27, 18, 19, 20, 21, 23, 22, 29, 26, 34, 43, 2]
-        // 가변: 스포트라이트 / 키스트로크 / 돋보기 토글
+        // 고정: 줌(24,27), 색상 1~6(18,19,20,21,23,22), 색상 7 흰(26), 색 순환(8=C), 모양 순환(4=H)
+        var codes: Set<Int64> = [24, 27, 18, 19, 20, 21, 23, 22, 26, 8, 4]
+        // 가변: 스포트라이트 / 키스트로크 / 돋보기 토글 / 인스펙터 / 라디얼 / 그리기 모드
         codes.insert(Int64(settings.spotlightKeyCode))
         codes.insert(Int64(settings.keystrokeShortcutKeyCode))
         codes.insert(Int64(settings.magnifierShortcutKeyCode))
+        codes.insert(Int64(settings.inspectorKeyCode))
+        codes.insert(Int64(settings.radialMenuKeyCode))
+        codes.insert(Int64(settings.drawingKeyCode))
         consumableCodes = codes
     }
 
@@ -127,7 +128,17 @@ final class KeyboardHotkeyHandler {
                     // 메뉴/그리기 활성 중에는 ESC 소비 (다른 앱에 누수 방지)
                     let drawingActive = h.mouseMonitor?.isDrawingModeActive ?? false
                     let escConsume = (h.radialMenuActiveFlag || drawingActive) && keyCode == 53
-                    let consume = (isCtrlOptOnly && h.consumableCodes.contains(keyCode)) || escConsume
+                    // 그리기 활성 중 Cmd+Z(6), `[`(33), `]`(30)을 underlying app으로 안 보냄
+                    let cmdOnly = f.contains(.maskCommand) && !f.contains(.maskShift)
+                        && !f.contains(.maskAlternate) && !f.contains(.maskControl)
+                    let noMods = f.intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl]).isEmpty
+                    let drawingKeyConsume = drawingActive && (
+                        (keyCode == 6 && cmdOnly) ||      // Cmd+Z
+                        (keyCode == 33 && noMods) ||      // [
+                        (keyCode == 30 && noMods)         // ]
+                    )
+                    let consume = (isCtrlOptOnly && h.consumableCodes.contains(keyCode))
+                        || escConsume || drawingKeyConsume
 
                     // 실제 처리는 main에서. CGEvent는 async 동안 무효화될 수 있어 copy 후 전달.
                     if let snapshot = event.copy() {
@@ -143,7 +154,11 @@ final class KeyboardHotkeyHandler {
                     return Unmanaged.passUnretained(event)
 
                 case .flagsChanged:
-                    // Toggle 모드 — ⌃/⌥ 떼도 메뉴 유지. 사용자가 모디파이어 떼고 천천히 선택 가능.
+                    // 그리기 모드 활성 시 toolbar에서 현재 모디파이어 기반 도구 강조 — 실시간 갱신
+                    DispatchQueue.main.async { [weak h] in
+                        guard let h, let drawing = h.drawingState, drawing.isDrawingModeActive else { return }
+                        drawing.currentModifiers = NSEvent.modifierFlags
+                    }
                     return Unmanaged.passUnretained(event)
 
                 default:
@@ -201,6 +216,34 @@ final class KeyboardHotkeyHandler {
             keystrokeOverlay?.showStatusNotification("✏️ 그리기 · clear")
             return
         }
+    }
+
+    /// Radial Menu open — ⌃⌥, 또는 좌클릭 long-press(Tokens.Radial.longPressDuration)로 호출.
+    /// 이미 활성이면 no-op. cursor 위치 기준 edge clamp 적용.
+    func openRadialMenu() {
+        guard let runtime, !runtime.isRadialMenuActive else { return }
+        let raw = runtime.cursorPosition
+        let safe = Tokens.Radial.edgeClamp
+        let screen = NSScreen.screens.first(where: { $0.frame.contains(raw) }) ?? NSScreen.main
+        let center: CGPoint
+        if let frame = screen?.frame {
+            center = CGPoint(
+                x: max(frame.minX + safe, min(frame.maxX - safe, raw.x)),
+                y: max(frame.minY + safe, min(frame.maxY - safe, raw.y))
+            )
+        } else {
+            center = raw
+        }
+        runtime.isRadialMenuActive = true
+        runtime.radialMenuCenter = center
+        runtime.radialMenuSelectedSector = nil
+        runtime.radialMenuSelectedSubItem = nil
+        radialMenuActiveFlag = true
+        mouseMonitor?.shouldConsumeLeftClick = true
+        withAnimation(Tokens.Motion.easeMicro) { runtime.isRadialMenuVisible = true }
+        let helpShown = UserDefaults.standard.integer(forKey: "radialMenuHelpShownCount")
+        runtime.radialMenuShowHelp = helpShown < 5
+        UserDefaults.standard.set(helpShown + 1, forKey: "radialMenuHelpShownCount")
     }
 
     /// Radial Menu cancel — ⌃⌥, 토글 close 또는 handleEscape에서 호출. 액션 실행 X.
@@ -367,10 +410,29 @@ final class KeyboardHotkeyHandler {
         guard let settings, let runtime, let effects, let keystrokeOverlay else { return }
         let flags = event.modifierFlags.intersection([.control, .option, .command, .shift])
 
+        // 그리기 모드 활성 중 단축키 — Cmd+Z(undo) / [/](두께 조절). 모드 활성일 때만 발동, 그 외엔 일반 앱으로 통과.
+        if let drawing = drawingState, drawing.isDrawingModeActive {
+            if event.keyCode == 6 && flags == [.command] {
+                drawing.undoLastShape()
+                keystrokeOverlay.showStatusNotification("✏️ 되돌리기 · \(drawing.shapes.count)개 남음")
+                return
+            }
+            if event.keyCode == 33 && flags.isEmpty {
+                let w = drawing.decreaseLineWidth()
+                keystrokeOverlay.showStatusNotification("✏️ 두께 · \(Int(w))pt")
+                return
+            }
+            if event.keyCode == 30 && flags.isEmpty {
+                let w = drawing.increaseLineWidth()
+                keystrokeOverlay.showStatusNotification("✏️ 두께 · \(Int(w))pt")
+                return
+            }
+        }
+
         // ⌃⌥ 단축키
         if flags == [.control, .option] {
             // ⌃⌥D — 그리기 모드 토글. 도형은 유지 (그린 후 모드 끄고 발표 진행 → 다시 켜서 추가)
-            if event.keyCode == 2 {
+            if event.keyCode == settings.drawingKeyCode {
                 if let drawing = drawingState {
                     drawing.toggleMode()
                     mouseMonitor?.isDrawingModeActive = drawing.isDrawingModeActive
@@ -414,19 +476,19 @@ final class KeyboardHotkeyHandler {
                 keystrokeOverlay.showStatusNotification(String(format: String(localized: "magnifier_zoom_toast"), newZoom))
                 return
             }
-            // ⌃⌥1~6 색상 즉시 변경
-            // keyCode: 1=18, 2=19, 3=20, 4=21, 5=23, 6=22
+            // ⌃⌥1~7 색상 즉시 변경 — 1~6 + 7(흰). 숫자는 색 전용, 순환은 알파벳(⌃⌥C)으로 분리.
+            // keyCode: 1=18, 2=19, 3=20, 4=21, 5=23, 6=22, 7=26
             let colorMap: [UInt16: CursorSettings.RingColor] = [
-                18: .yellow, 19: .red, 20: .blue, 21: .green, 23: .cyan, 22: .purple
+                18: .yellow, 19: .red, 20: .blue, 21: .green, 23: .cyan, 22: .purple, 26: .white
             ]
             if let color = colorMap[event.keyCode] {
                 settings.ringColor = color
                 return
             }
-            // ⌃⌥0 다음 색상으로 순환 — 발표 중 빠른 색 변경용
-            // (1~6 개별 키 누르기 귀찮을 때, 한 키로 다음 색)
-            if event.keyCode == 29 {  // "0" key
-                let cases = CursorSettings.RingColor.allCases
+            // ⌃⌥C 다음 색상으로 순환 — 발표 중 빠른 색 변경용. "C" for Color cycle.
+            // 숫자 키는 색 전용으로 유지 (1~7 색 + 향후 확장), 순환은 알파벳으로 분리.
+            if event.keyCode == 8 {  // "C" key
+                let cases = CursorSettings.RingColor.allCases.filter { $0 != .custom }
                 let currentIndex = cases.firstIndex(of: settings.ringColor) ?? 0
                 let next = cases[(currentIndex + 1) % cases.count]
                 settings.ringColor = next
@@ -437,43 +499,23 @@ final class KeyboardHotkeyHandler {
             // 실행: sub 위에서 좌클릭 (메뉴 유지 — 여러 효과 연속 토글 가능).
             // 닫기: ⌃⌥, 다시, 또는 ESC, 또는 dead zone(✕) 클릭.
             // 화면 가장자리 clamp — cursor가 모서리 가까이여서 메뉴가 잘리지 않도록 중심을 안쪽으로 보정.
-            if event.keyCode == 43 {
+            if event.keyCode == settings.radialMenuKeyCode {
                 if runtime.isRadialMenuActive {
                     cancelRadialMenuIfActive()
                 } else {
-                    let raw = runtime.cursorPosition
-                    let safe = Tokens.Radial.edgeClamp
-                    let screen = NSScreen.screens.first(where: { $0.frame.contains(raw) }) ?? NSScreen.main
-                    let center: CGPoint
-                    if let frame = screen?.frame {
-                        center = CGPoint(
-                            x: max(frame.minX + safe, min(frame.maxX - safe, raw.x)),
-                            y: max(frame.minY + safe, min(frame.maxY - safe, raw.y))
-                        )
-                    } else {
-                        center = raw
-                    }
-                    runtime.isRadialMenuActive = true
-                    runtime.radialMenuCenter = center
-                    runtime.radialMenuSelectedSector = nil
-                    runtime.radialMenuSelectedSubItem = nil
-                    radialMenuActiveFlag = true
-                    mouseMonitor?.shouldConsumeLeftClick = true  // 메뉴 영역 좌클릭을 underlying app으로 보내지 않게
-                    withAnimation(Tokens.Motion.easeMicro) { runtime.isRadialMenuVisible = true }
-                    let helpShown = UserDefaults.standard.integer(forKey: "radialMenuHelpShownCount")
-                    runtime.radialMenuShowHelp = helpShown < 5
-                    UserDefaults.standard.set(helpShown + 1, forKey: "radialMenuHelpShownCount")
+                    openRadialMenu()
                 }
                 return
             }
-            // ⌃⌥I 화면 좌표 인스펙터 토글 — cursor 옆 (x, y) Quartz 좌표 라벨.
-            if event.keyCode == 34 {  // "I" key
+            // 화면 좌표 인스펙터 토글 — cursor 옆 (x, y) Quartz 좌표 라벨. (기본 ⌃⌥I, 재정의 가능)
+            if event.keyCode == settings.inspectorKeyCode {
                 runtime.isInspectorActive.toggle()
                 keystrokeOverlay.showStatusNotification(String(localized: runtime.isInspectorActive ? "📐 좌표 인스펙터 켜짐" : "📐 좌표 인스펙터 꺼짐"))
                 return
             }
-            // ⌃⌥7 모양 순환 — 원형 → 둥근 사각형 → 마름모
-            if event.keyCode == 26 {  // "7" key
+            // ⌃⌥H 모양 순환 — 원형 → 둥근 사각형 → 마름모. "H" for sHape.
+            // 숫자 7 자리는 흰색 단축키로 양도 (색 7개 1~7 연속).
+            if event.keyCode == 4 {  // "H" key
                 let cases = CursorSettings.RingShape.allCases
                 let currentIndex = cases.firstIndex(of: settings.ringShape) ?? 0
                 let next = cases[(currentIndex + 1) % cases.count]

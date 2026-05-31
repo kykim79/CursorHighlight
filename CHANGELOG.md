@@ -4,6 +4,39 @@
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-31
+
+### Added
+
+- **그리기 모드 도구 7종 확장** — v0.6.0의 펜·직선·화살표에 4종 추가:
+  - **사각형** (Cmd+드래그) — 코드 영역·UI 요소 박스 강조
+  - **타원** (Cmd+Shift+드래그) — 원형 강조
+  - **형광펜** (Cmd+Opt+드래그) — 25pt 반투명 영역 강조 ("이 부분 보세요")
+  - **번호 뱃지** (Shift+Opt+클릭) — 자동 번호 1·2·3... step-by-step 시연용. ringColor 채움 + 흰색 외곽선/숫자
+- **Cmd+Z 마지막 도형 제거** — 그리기 모드 활성 중에만 소비 (다른 앱 undo 영향 없음). 뱃지 제거 시 counter도 함께 감소
+- **두께 조절 `[` / `]`** — 5단계 [2, 4, 6, 10, 14]pt, 그리기 모드 활성 중에만 키 소비. 이미 그린 도형엔 영향 없음 (per-shape 캡처)
+- **모디파이어 우선순위 명문화** — Shift+Opt = badge > Cmd+Opt = highlighter > Cmd+Shift = ellipse > Cmd = rectangle > Opt = arrow > Shift = line > 그 외 = pen
+- **그리기 도구박스 (영구 표시)** — 그리기 모드 ON 시 화면 좌하단에 7개 도구·5단계 두께·7색 팔레트가 vibrancy material로 항상 표시. 클릭으로 도구·두께·색 직접 선택, drag handle로 위치 이동(화면 안 clamp). modifier preview로 단축키 사용자엔 즉시 도구 미리보기. 첫 5회 사용 시 6초간 하단에 단축키 cheat sheet 자동 표시.
+- **DrawingStateTests +17 cases** — 신규 도구 분기, undo, lineWidth 조절/clamp, badge counter 증감/reset, per-shape lineWidth 캡처 검증.
+- **흰색 링 (⌃⌥7)** — 7번째 색으로 추가. 다크 모드/녹화 화면 위에서 high contrast. 도구박스 뱃지·뱃지 도형 텍스트는 WCAG luminance(L>0.6) 기반 자동 dark/light 전환.
+- **장단축키 / Inspector 사용자 재정의** — ⌃⌥, (radial), ⌃⌥D (drawing), ⌃⌥I (inspector) 단축키를 환경설정의 KeyRecorder로 자유 키 지정 가능. 색 1~7·줌·순환 등 예약 키와 충돌 시 inline 경고.
+- **마우스 좌클릭 long press → radial menu (0.5s)** — 트랙패드/원-핸드 호출용. 5pt deadband로 드래그 false-trigger 방지.
+
+### Changed
+
+- **링 색상 단축키 재배치 (확장성)** — 숫자 1~7을 색 전용으로 예약하고, 순환 키는 알파벳으로 이동:
+  - ⌃⌥0 (색 순환) → **⌃⌥C** (Color cycle)
+  - ⌃⌥7 (모양 순환) → **⌃⌥H** (sHape cycle)
+  - ⌃⌥7 = 흰색 링 (신규)
+  - **이유:** 색이 늘어날 때마다 cycle 키를 옮기지 않아도 되도록 — 숫자 = 색, 알파벳 = cycle 컨벤션 확립.
+- `DrawingState.Shape`에 `lineWidth: CGFloat` + `badgeNumber: Int?` property 추가
+- `DrawingState`에 `lineWidth: CGFloat` (Published, 기본 4) + `badgeCounter: Int` (기본 1) state 추가
+- `clearAndExit()` 확장 — 도형 clear 외 counter/lineWidth도 초기값 reset
+- `Tokens.Drawing` 확장 — `lineWidthSteps`, `highlighterWidth/Opacity`, `badgeRadius/BorderWidth/FontSize`, `Toolbar.*` 추가
+- `CursorSettings.RingColor` enum case 순서 변경: yellow, red, blue, green, cyan, purple, **white**, custom (⌃⌥1~7 매핑 안정화)
+- `Color.needsDarkText` extension 추가 (WCAG luminance) — 밝은 색 위 텍스트 가독성 보장
+- **도구박스 selection vs 색 채널 분리** — 기존 `accent.opacity(0.9)` fill 배경(색이 큰 면적 차지) → 색은 외곽 ring(작은 면적)에만, selection은 고정 `white.opacity(0.18)` surface tint로 표시. ringColor 변경 시 luminance contrast 계산 필요 없는 구조. `toolButton`/`thicknessButton`에서 `needsDarkText` 분기 제거 (colorButton은 본질이 색 표시라 유지)
+
 ## [0.6.0] — 2026-05-31
 
 ### Added

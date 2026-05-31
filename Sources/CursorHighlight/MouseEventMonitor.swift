@@ -20,6 +20,17 @@ class MouseEventMonitor {
     var onDragAngle: ((Double, CGFloat) -> Void)?  // (angle in radians, velocity in pt/s)
     var onDragEnd: (() -> Void)?
 
+    /// 좌클릭 hold (Tokens.Radial.longPressDuration) 시 fire — 라디얼 메뉴 트리거.
+    /// 마우스 hold / 트랙패드 long touch 모두 같은 left mouse 이벤트라 단일 메커니즘으로 처리.
+    var onLongPress: ((CGPoint) -> Void)?
+
+    // long press 추적 — mouseDown 시 timer 시작, deadband 초과 이동 또는 mouseUp 시 cancel.
+    private var longPressWorkItem: DispatchWorkItem?
+    private var longPressStartPos: CGPoint = .zero
+    /// 상위 코드에서 라디얼 메뉴 / 그리기 모드 활성 여부 (background에서 읽음, main에서 갱신).
+    /// 활성 시 long press timer 시작 안 함 (중복 트리거/모드 충돌 방지).
+    private var canStartLongPress: Bool { !shouldConsumeLeftClick && !isDrawingModeActive }
+
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var selfPtr: UnsafeMutableRawPointer?
@@ -77,6 +88,15 @@ class MouseEventMonitor {
                 case .leftMouseDragged:
                     m.processMove(loc)
                     DispatchQueue.main.async { m.onMouseMove?(loc) }
+                    // Long-press deadband 초과 이동 → 드래그로 간주, timer cancel (라디얼 트리거 안 함)
+                    if let work = m.longPressWorkItem {
+                        let dx = loc.x - m.longPressStartPos.x
+                        let dy = loc.y - m.longPressStartPos.y
+                        if (dx * dx + dy * dy) > (Tokens.Radial.longPressDeadband * Tokens.Radial.longPressDeadband) {
+                            work.cancel()
+                            m.longPressWorkItem = nil
+                        }
+                    }
                     // 그리기 모드 — 드래그 위치를 그리기 콜백으로 라우팅 + underlying 차단
                     if m.isDrawingModeActive {
                         DispatchQueue.main.async { m.onDrawingDrag?(loc) }
@@ -107,12 +127,31 @@ class MouseEventMonitor {
                     let clickState = event.getIntegerValueField(.mouseEventClickState)
                     let isDouble = clickState >= 2
                     DispatchQueue.main.async { m.onLeftClick?(loc, isDouble) }
+                    // Long-press 트리거 — 라디얼 메뉴 미활성 + 그리기 미활성일 때만 timer 시작
+                    if m.canStartLongPress {
+                        m.longPressStartPos = loc
+                        let work = DispatchWorkItem { [weak m] in
+                            guard let m else { return }
+                            m.longPressWorkItem = nil
+                            // canStartLongPress는 main에서 갱신되므로 fire 시점에 다시 확인 (race 안전망)
+                            if m.canStartLongPress {
+                                m.onLongPress?(m.longPressStartPos)
+                            }
+                        }
+                        m.longPressWorkItem = work
+                        DispatchQueue.main.asyncAfter(deadline: .now() + Tokens.Radial.longPressDuration, execute: work)
+                    }
                     // Radial menu 또는 그리기 모드 활성 중에는 underlying app으로 click 전달 안 함
                     if m.shouldConsumeLeftClick || m.isDrawingModeActive {
                         return nil
                     }
 
                 case .leftMouseUp:
+                    // Long-press timer 살아있으면 cancel — 사용자가 threshold 전에 손 뗌 = 짧은 클릭
+                    if let work = m.longPressWorkItem {
+                        work.cancel()
+                        m.longPressWorkItem = nil
+                    }
                     if m.isDrawingModeActive {
                         DispatchQueue.main.async { m.onDrawingRelease?(loc) }
                         m.inDrag = false
