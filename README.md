@@ -199,4 +199,6 @@ CursorHighlight/
 
 ## 라이선스
 
-개인 프로젝트.
+MIT License — 자세한 내용은 [LICENSE](LICENSE) 파일 참조.
+
+Copyright (c) 2026 kykim79

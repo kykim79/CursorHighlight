@@ -34,6 +34,7 @@ targets:
         # 로컬 빌드는 위 settings.base의 기본값(0.1.0/1), GitHub Actions는 git tag에서 추출한 값.
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSHumanReadableCopyright: "Copyright © 2026 kykim79. MIT License."
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ktoy.CursorHighlight

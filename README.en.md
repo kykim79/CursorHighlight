@@ -91,4 +91,6 @@ System Settings → General → Language & Region → reorder preferred language
 
 ## License
 
-Personal project.
+MIT License — see [LICENSE](LICENSE) for details.
+
+Copyright (c) 2026 kykim79

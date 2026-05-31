@@ -22,6 +22,8 @@
 	<true/>
 	<key>NSAccessibilityUsageDescription</key>
 	<string>마우스 클릭과 키보드 입력을 감지해 커서 강조 효과를 표시합니다.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 kykim79. MIT License.</string>
 	<key>NSInputMonitoringUsageDescription</key>
 	<string>전역 키보드 단축키(돋보기·스포트라이트·키스트로크 표시 토글 등)를 감지합니다.</string>
 	<key>NSScreenCaptureUsageDescription</key>
